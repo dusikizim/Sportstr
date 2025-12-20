@@ -1,4 +1,4 @@
 #EXTM3U
 #EXT-X-VERSION:3
 #EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=2700000
-http://dino13.linkott.com/play/live.php?mac=00:1A:79:51:18:04&stream=260080&extension=ts
+http://dino13.linkott.com/play/live.php?mac=00:1A:79:51:18:04&stream=260080&extension=m3u8
