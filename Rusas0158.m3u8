@@ -1,0 +1,4 @@
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=2700000
+https://api.codetabs.com/v1/proxy/?quest=http://as01.spr24.net/5824/mpegts?token=nSbamDBvPQC9zu
