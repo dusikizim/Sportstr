@@ -1,7 +1,5 @@
 #EXTM3U
 
-                                                           🇹🇷͜͜͡͡✯ ULUSAL KANALLAR
-
 #EXTINF:-1 tvg-name="TRT 1" tvg-id="TRT1.tr" tvg-logo="https://i.ibb.co/thr6mVk/trt-1.png" group-title="🇹🇷͜͜͡͡✯ ULUSAL KANALLAR",TRT 1
 https://tv-trt1.medya.trt.com.tr/master_1080.m3u8
 https://trt.daioncdn.net/trt-1/master_1080p.m3u8?&sid=7uqvag61gnys&app=ed3904e8-737b-4a5e-856a-1b0d7a0a94e2&ce=2
@@ -9,35 +7,11 @@ https://tv-trt1.medya.trt.com.tr/master_1080p.m3u8
 http://89.187.191.41/TRT-1-HD-TR/video.m3u8
 https://tv-trt1.medya.trt.com.tr/master_1080.m3u8?checkedby:MyWay
 
-
-
 🇹🇷͜͜͡͡✯ 𝖡𝖤𝖫𝖦𝖤𝖲𝖤𝖫#EXTINF:-1 tvg-logo="https://i.ibb.co/sJDgvdRw/68lU2b7.png" group-title="🇹🇷͜͜͡͡✯ 𝖡𝖤𝖫𝖦𝖤𝖲𝖤𝖫",National Geographic
-
-#EXTINF:-1 tvg-logo="https://i.ibb.co/Z5Vq41N/sLVc4UA.png" group-title="🇹🇷͜͜͡͡✯ 𝖡𝖤𝖫𝖦𝖤𝖲𝖤𝖫",Nat Geo Wild 
 https://saran-live.ercdn.net/natgeohd/index.m3u8?st=uo_tiDvIzeRrTIyZ402B9g&e=1738278432
 
 #EXTINF:-1 tvg-logo="https://i.ibb.co/Z5Vq41N/sLVc4UA.png" group-title="🇹🇷͜͜͡͡✯ 𝖡𝖤𝖫𝖦𝖤𝖲𝖤𝖫",Nat Geo Wild 
-https://saran-live.ercdn.net/natgeowild/index.m3u8
-
-#EXTINF:-1 tvg-logo="https://i.ibb.co/Z5Vq41N/sLVc4UA.png" group-title="🇹🇷͜͜͡͡✯ 𝖡𝖤𝖫𝖦𝖤𝖲𝖤𝖫",Spormax Wild 
-https://tv191.radyotelekom.com.tr:3835/stream/play.m3u8
-
-
-
-
-
-🇹🇷͜͜͡͡✯ 𝖡𝖤𝖫𝖦𝖤𝖲𝖤𝖫 İ𝖹𝖫𝖤                                                                                                                                                                                                             #EXTINF:-1 tvg-logo="https://www.filmbol.org/wp-content/uploads/christopher-a-beautiful-real-life-🇹🇷͜͜͡͡✯ FİLM İZLE 2025-04.webp" group-title="🇹🇷͜͜͡͡✯ 𝖡𝖤𝖫𝖦𝖤𝖲𝖤𝖫 İ𝗭𝗟𝗘",Christopher: A Beautiful Real Life (🇹🇷͜͜͡͡✯ FİLM İZLE 2025 ) Biyografi
-
-
-
-
- 🇹🇷͜͜͡͡✯ 𝖤𝖵𝖣𝖤 𝖲İ𝖭𝖤𝖬𝖠 𝖪𝖤𝖸𝖥İ                                                                                 
-
-
-
-
-
-                       🇹🇷͜͜͡͡✯ SİNEVİZYON                             
+https://saran-live.ercdn.net/natgeowild/index.m3u8                             
 
 #EXTINF:-1 tvg-logo="https://play-lh.googleusercontent.com/BDUySDHFzY4JcRzQpLsIHiZKLvIEmVL5N30qc-DWwVhwN3dJqV0J4BKE6XH9EOw_ygQ" group-title="Spor",SPORWİP
 https://dga1op10s1u3leo.389c93e126491a.click/live/selcukobs1/playlist.m3u8
@@ -1348,8 +1322,6 @@ https://ssl4.radyotvonline.com/radyohome/pophome.stream_aac/playlist.m3u8
 #EXTINF:-1 tvg-logo="" group-title="⚡Radyo"Radyo",TRT TÜRKİYE'NİN SESİ RADYOSU
 https://radio-trttsr.medya.trt.com.tr/master.m3u8
 
-
 #EXTINF:-1 tvg-id="" tvg-name="Konuşanlar S01 E01" tvg-logo="https://image.tmdb.org/t/p/w600_and_h900_bestv2/gTJZ9d49dLI2m1vv1Ufi3Cx7rMt.jpg" group-title="🇹🇷͜͜͡͡✯  KONUŞANLAR", S04 E32
 #EXTVLCOPT:file-caching=1000
 http://136341.performservers.eu:80/series/biloner58430976986/biloner89054316839/322568.mkv
-
