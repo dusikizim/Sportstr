@@ -1,0 +1,4242 @@
+<html lang="tr">
+ <head> 
+  <meta charset="UTF-8"> 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"> 
+  <title>https://dijital.link/izlego</title> 
+  <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+        }
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: black; overflow: hidden;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+        }
+        #player-wrapper {
+            position: relative; width: 100%; height: 100%; background: black;
+            display: flex; justify-content: center; align-items: center;
+        }
+        video {
+            width: 100%; height: 100%; object-fit: contain; z-index: 1;
+        }
+
+        /* Logo */
+        .logo {
+            position: absolute; top: 20px; left: 25px; width: 7%;
+            max-width: 70px; min-width: 45px; height: auto; z-index: 1100;
+            pointer-events: none; opacity: 0.95;
+            filter: drop-shadow(0 0 8px gold) contrast(1.2) brightness(1.1);
+        }
+
+        /* Kanal ismi - SAĞ ÜST KÖŞEDE */
+        #channel-name {
+            position: absolute; top: 25px; right: 30px; z-index: 1200;
+            background: linear-gradient(145deg, rgba(15,15,25,0.85), rgba(30,30,45,0.9));
+            backdrop-filter: blur(16px);
+            padding: 10px 24px; border-radius: 50px;
+            border: 1px solid rgba(255,215,0,0.6);
+            color: #fff2d7; font-size: 17px; font-weight: 600; letter-spacing: 0.5px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+            max-width: 50%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+            backdrop-filter: blur(12px);
+        }
+
+        /* KONTROL PANELİ - zaman çubuğu ve butonlar */
+        .control-overlay {
+            position: absolute; left: 30px; right: 30px; bottom: 35px; z-index: 2000;
+            display: flex; flex-direction: column; gap: 20px;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        .control-overlay.visible { opacity: 1; visibility: visible; }
+        .control-overlay:not(.visible) { opacity: 0; visibility: hidden; }
+        .control-overlay.visible * { pointer-events: auto; }
+
+        .seek-row {
+            display: flex; align-items: center; gap: 18px;
+            background: rgba(12,12,20,0.7); backdrop-filter: blur(20px);
+            border-radius: 80px; padding: 10px 22px;
+            border: 1px solid rgba(255,215,0,0.5);
+            box-shadow: 0 15px 40px black;
+        }
+        .time-badge {
+            background: rgba(0,0,0,0.6); border-radius: 40px;
+            padding: 8px 16px; font-size: 15px; font-weight: 700;
+            color: #ffecb3; min-width: 70px; text-align: center;
+            border: 1px solid rgba(255,215,0,0.5);
+        }
+        .progress-track {
+            flex: 1; height: 22px; background: rgba(60,60,80,0.7);
+            border-radius: 40px; cursor: pointer; position: relative;
+            border: 1px solid rgba(255,215,0,0.6);
+        }
+        .progress-fill {
+            width: 0%; height: 100%;
+            background: linear-gradient(90deg, #ffd966, #ffaa33);
+            border-radius: 40px; position: relative;
+            box-shadow: 0 0 25px #ffaa33;
+        }
+        .progress-fill::after {
+            content: ''; position: absolute; right: -10px; top: -10px;
+            width: 36px; height: 36px; background: white;
+            border-radius: 50%; border: 4px solid #ffb347;
+            box-shadow: 0 0 25px gold;
+        }
+
+        .button-bar {
+            display: flex; gap: 14px; justify-content: flex-end; align-items: center;
+            background: rgba(12,12,20,0.6); backdrop-filter: blur(20px);
+            border-radius: 90px; padding: 10px 20px; width: fit-content;
+            margin-left: auto; border: 1px solid rgba(255,215,0,0.4);
+        }
+        .ctrl-btn {
+            width: 52px; height: 52px; background: rgba(30,30,45,0.9);
+            backdrop-filter: blur(8px); border: 1px solid rgba(255,215,0,0.6);
+            border-radius: 40px; display: flex; align-items: center;
+            justify-content: center; cursor: pointer; transition: 0.2s;
+        }
+        .ctrl-btn svg { width: 28px; height: 28px; fill: #ffecb3; }
+        .ctrl-btn:hover { background: #ffd966; }
+        .ctrl-btn:hover svg { fill: #121212; }
+        .ctrl-btn:active { transform: scale(0.92); }
+
+        /* KANAL LİSTESİ AÇMA BUTONU */
+        #channels-toggle {
+            position: absolute; bottom: 40px; left: 30px; width: 60px; height: 60px;
+            background: linear-gradient(145deg, #1a1a2a, #2a2a3a);
+            backdrop-filter: blur(16px); border: 2px solid gold;
+            border-radius: 40px; z-index: 2200; display: flex;
+            align-items: center; justify-content: center; cursor: pointer;
+            transition: opacity 0.3s, transform 0.2s;
+            box-shadow: 0 10px 30px black;
+        }
+        #channels-toggle svg { width: 34px; height: 34px; fill: #ffecb3; }
+        #channels-toggle:hover { background: gold; transform: scale(1.05); }
+        #channels-toggle:hover svg { fill: black; }
+        #channels-toggle.hidden { opacity: 0; visibility: hidden; }
+
+        /* SIDEBAR - DİKEY LİSTE (GRUP + KANAL) */
+        #sidebar {
+            position: absolute; top: 0; left: -420px; width: 380px; max-width: 85%;
+            height: 100%; background: rgba(10,10,20,0.98);
+            backdrop-filter: blur(30px); border-right: 2px solid gold;
+            z-index: 5000; transition: left 0.25s ease-out;
+            display: flex; flex-direction: column;
+            box-shadow: 20px 0 50px black;
+            padding: 15px 0;
+        }
+        #sidebar.open { left: 0; }
+
+        /* GRUP SEÇİCİ - YATAY ŞERİT (listenin üstünde) */
+        .group-selector {
+            display: flex; gap: 8px; padding: 12px 16px; overflow-x: auto;
+            border-bottom: 1px solid rgba(255,215,0,0.3);
+            margin-bottom: 5px;
+            scrollbar-width: thick;
+            scrollbar-color: #ffd966 #2a2a3a;
+            flex-shrink: 0;
+        }
+        .group-selector::-webkit-scrollbar {
+            height: 16px;
+        }
+        .group-selector::-webkit-scrollbar-track {
+            background: #2a2a3a;
+            border-radius: 20px;
+            margin: 0 10px;
+        }
+        .group-selector::-webkit-scrollbar-thumb {
+            background: linear-gradient(90deg, #ffd966, #ffaa33);
+            border-radius: 20px;
+            border: 3px solid #2a2a3a;
+        }
+
+        .group-tab {
+            background: rgba(40,40,60,0.8); border: 1px solid rgba(255,215,0,0.4);
+            padding: 10px 22px; border-radius: 40px; font-size: 14px;
+            font-weight: 600; white-space: nowrap; cursor: pointer;
+            color: #ddd; flex-shrink: 0; transition: 0.15s;
+        }
+        .group-tab.active {
+            background: #ffd966; color: #121212; border-color: white;
+            font-weight: 700; box-shadow: 0 0 20px gold;
+        }
+
+        /* KANAL LİSTESİ - DİKEY ŞERİT (alt alta liste, kalın scroll) */
+        .channel-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            scrollbar-width: thick;
+            scrollbar-color: #ffd966 #1e1e2e;
+        }
+        .channel-list::-webkit-scrollbar {
+            width: 18px;
+        }
+        .channel-list::-webkit-scrollbar-track {
+            background: #1e1e2e;
+            border-radius: 20px;
+            margin: 8px 0;
+        }
+        .channel-list::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #ffd966, #ffaa33);
+            border-radius: 20px;
+            border: 4px solid #1e1e2e;
+            min-height: 70px;
+        }
+
+        .channel-item {
+            background: rgba(45,45,70,0.6); backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,215,0,0.25); border-radius: 20px;
+            padding: 16px 18px; /* daha geniş tıklama alanı */
+            text-align: left; /* yazı solda */
+            font-size: 15px;
+            font-weight: 500; cursor: pointer; transition: 0.15s;
+            color: #f0e6d0; box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            flex-shrink: 0;
+        }
+        .channel-item.active {
+            background: #ffd966; color: #121212; border-color: white;
+            font-weight: 700; box-shadow: 0 0 25px gold;
+            transform: scale(1.02);
+        }
+
+        .hide-cursor { cursor: none !important; }
+    </style> 
+ </head> 
+ <body class="hide-cursor"> 
+  <div id="player-wrapper"> 
+   <img src="https://i.postimg.cc/T3X5B8WR/4cffec7f-8c1a-4b29-942d-7c54a9a23413.gif" class="logo" alt="VOD"> 
+   <video id="video" playsinline="" webkit-playsinline="" autoplay="" src="blob:https://vodizle.smartiptvworld.workers.dev/45ed275b-cf98-4538-91b1-12328edaf92b"></video> 
+   <div id="channel-name">
+    Evde Tek Başına 5: Tatil Soygunu
+   </div> 
+   <!-- KONTROL PANELİ --> 
+   <div class="control-overlay" id="controlOverlay"> 
+    <div class="seek-row"> 
+     <span class="time-badge" id="currentTime">01:20</span> 
+     <div class="progress-track" id="progressTrack"> 
+      <div class="progress-fill" id="progressFill" style="width: 1.49212%;"></div> 
+     </div> 
+     <span class="time-badge" id="durationTime">1:30:19</span> 
+    </div> 
+    <div class="button-bar"> 
+     <button class="ctrl-btn" id="seekBackBtn" title="Geri 10sn">
+      <svg viewbox="0 0 24 24">
+       <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"></path>
+       <path d="M10 15h1.5v-4H10v4zm4.5-4H13v4h1.5v-4z"></path>
+      </svg></button> 
+     <button class="ctrl-btn" id="prevBtn" title="Önceki">
+      <svg viewbox="0 0 24 24">
+       <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"></path>
+      </svg></button> 
+     <button class="ctrl-btn" id="nextBtn" title="Sonraki">
+      <svg viewbox="0 0 24 24">
+       <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"></path>
+      </svg></button> 
+     <button class="ctrl-btn" id="seekFwdBtn" title="İleri 10sn">
+      <svg viewbox="0 0 24 24">
+       <path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"></path>
+       <path d="M10 15h1.5v-4H10v4zm4.5-4H13v4h1.5v-4z"></path>
+      </svg></button> 
+     <button class="ctrl-btn" id="fs-btn" title="Tam Ekran">
+      <svg viewbox="0 0 24 24">
+       <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"></path>
+      </svg></button> 
+    </div> 
+   </div> 
+   <!-- KANAL LİSTESİ AÇMA BUTONU --> 
+   <div id="channels-toggle" tabindex="0" role="button" aria-label="Kanallar" class="hidden"> 
+    <svg viewbox="0 0 24 24">
+     <path d="M4 6h16v2H4zm2-4h12v2H6zm14 8H4v2h16zm-2 4H6v2h12zM4 18h16v2H4z"></path>
+    </svg> 
+   </div> 
+   <!-- SIDEBAR: grup sekmeleri yatay şerit + kanallar dikey şerit (liste) --> 
+   <div id="sidebar"> 
+    <div class="group-selector" id="groupTabs">
+     <span class="group-tab active" tabindex="0" data-group="Aile">Aile</span>
+     <span class="group-tab " tabindex="0" data-group="Aksiyon">Aksiyon</span>
+     <span class="group-tab " tabindex="0" data-group="Animasyon">Animasyon</span>
+     <span class="group-tab " tabindex="0" data-group="Belgesel">Belgesel</span>
+     <span class="group-tab " tabindex="0" data-group="Bilim Kurgu">Bilim Kurgu</span>
+     <span class="group-tab " tabindex="0" data-group="Dram">Dram</span>
+     <span class="group-tab " tabindex="0" data-group="Fantastik">Fantastik</span>
+     <span class="group-tab " tabindex="0" data-group="Gerilim">Gerilim</span>
+     <span class="group-tab " tabindex="0" data-group="Gizem">Gizem</span>
+     <span class="group-tab " tabindex="0" data-group="Komedi">Komedi</span>
+     <span class="group-tab " tabindex="0" data-group="Korku">Korku</span>
+     <span class="group-tab " tabindex="0" data-group="Macera">Macera</span>
+     <span class="group-tab " tabindex="0" data-group="Müzik">Müzik</span>
+     <span class="group-tab " tabindex="0" data-group="Romantik">Romantik</span>
+     <span class="group-tab " tabindex="0" data-group="Savaş">Savaş</span>
+     <span class="group-tab " tabindex="0" data-group="Suç">Suç</span>
+     <span class="group-tab " tabindex="0" data-group="TV Film">TV Film</span>
+     <span class="group-tab " tabindex="0" data-group="Tarih">Tarih</span>
+     <span class="group-tab " tabindex="0" data-group="Vahşi Batı">Vahşi Batı</span>
+     <span class="group-tab " tabindex="0" data-group="Yerli Film">Yerli Film</span>
+    </div> 
+    <div class="channel-list" id="channelList">
+     <div class="channel-item " data-index="0" tabindex="0">
+      Wicked: İyilik Uğruna
+     </div>
+     <div class="channel-item " data-index="1" tabindex="0">
+      Dolphin Summer
+     </div>
+     <div class="channel-item " data-index="2" tabindex="0">
+      Zootropolis: Hayvanlar Şehri
+     </div>
+     <div class="channel-item active" data-index="3" tabindex="0">
+      Evde Tek Başına 5: Tatil Soygunu
+     </div>
+     <div class="channel-item " data-index="4" tabindex="0">
+      Evde Tek Başına 6
+     </div>
+     <div class="channel-item " data-index="5" tabindex="0">
+      Evde Tek Başına 4
+     </div>
+     <div class="channel-item " data-index="6" tabindex="0">
+      Evde Tek Başına 3
+     </div>
+     <div class="channel-item " data-index="7" tabindex="0">
+      Evde Tek Başına 2
+     </div>
+     <div class="channel-item " data-index="8" tabindex="0">
+      Evde Tek Başına 1
+     </div>
+     <div class="channel-item " data-index="9" tabindex="0">
+      Train to Christmas
+     </div>
+     <div class="channel-item " data-index="10" tabindex="0">
+      Kangaroo
+     </div>
+     <div class="channel-item " data-index="11" tabindex="0">
+      Hope's Hollywood Christmas
+     </div>
+     <div class="channel-item " data-index="12" tabindex="0">
+      Vahşiler
+     </div>
+     <div class="channel-item " data-index="13" tabindex="0">
+      Sketch
+     </div>
+     <div class="channel-item " data-index="14" tabindex="0">
+      Christmas Karma
+     </div>
+     <div class="channel-item " data-index="15" tabindex="0">
+      Christmas Everyday
+     </div>
+     <div class="channel-item " data-index="16" tabindex="0">
+      Superworm
+     </div>
+     <div class="channel-item " data-index="17" tabindex="0">
+      Love After Holidays
+     </div>
+     <div class="channel-item " data-index="18" tabindex="0">
+      and Me
+     </div>
+     <div class="channel-item " data-index="19" tabindex="0">
+      Veer-Zaara
+     </div>
+     <div class="channel-item " data-index="20" tabindex="0">
+      The Christmas Showdown
+     </div>
+     <div class="channel-item " data-index="21" tabindex="0">
+      Power Rangers
+     </div>
+     <div class="channel-item " data-index="22" tabindex="0">
+      Power Rangers 2
+     </div>
+     <div class="channel-item " data-index="23" tabindex="0">
+      Die unendliche Geschichte II - Auf der Suche nach Phantásien
+     </div>
+     <div class="channel-item " data-index="24" tabindex="0">
+      Light of the World
+     </div>
+     <div class="channel-item " data-index="25" tabindex="0">
+      A Paw Patrol Christmas
+     </div>
+     <div class="channel-item " data-index="26" tabindex="0">
+      Sunny Sanskari ve Tulsi Kumari
+     </div>
+     <div class="channel-item " data-index="27" tabindex="0">
+      Seuls
+     </div>
+     <div class="channel-item " data-index="28" tabindex="0">
+      Dog Patrol: Operation Santa Paws
+     </div>
+     <div class="channel-item " data-index="29" tabindex="0">
+      Ona Niyet Sana Kısmet
+     </div>
+     <div class="channel-item " data-index="30" tabindex="0">
+      Ghosts of the Abyss
+     </div>
+     <div class="channel-item " data-index="31" tabindex="0">
+      Sirocco et le Royaume des courants d'air
+     </div>
+     <div class="channel-item " data-index="32" tabindex="0">
+      Gece Masalları
+     </div>
+     <div class="channel-item " data-index="33" tabindex="0">
+      Kurt Çocuklar
+     </div>
+     <div class="channel-item " data-index="34" tabindex="0">
+      Saniyede Beş Santimetre
+     </div>
+     <div class="channel-item " data-index="35" tabindex="0">
+      Transformers Prime: Beast Hunters - Predacons Rising
+     </div>
+     <div class="channel-item " data-index="36" tabindex="0">
+      Aile Terbiyesi
+     </div>
+     <div class="channel-item " data-index="37" tabindex="0">
+      Noel Anne
+     </div>
+     <div class="channel-item " data-index="38" tabindex="0">
+      Stitch Head
+     </div>
+     <div class="channel-item " data-index="39" tabindex="0">
+      Çılgın Köpek
+     </div>
+     <div class="channel-item " data-index="40" tabindex="0">
+      The Wildman of Shaggy Creek
+     </div>
+     <div class="channel-item " data-index="41" tabindex="0">
+      Operation Friendship
+     </div>
+     <div class="channel-item " data-index="42" tabindex="0">
+      Horse Healing
+     </div>
+     <div class="channel-item " data-index="43" tabindex="0">
+      Meiyazhagan
+     </div>
+     <div class="channel-item " data-index="44" tabindex="0">
+      Daha Çılgın Cuma
+     </div>
+     <div class="channel-item " data-index="45" tabindex="0">
+      Süper Charlie
+     </div>
+     <div class="channel-item " data-index="46" tabindex="0">
+      Büyük Yarış
+     </div>
+     <div class="channel-item " data-index="47" tabindex="0">
+      Victoria Gitmeli
+     </div>
+     <div class="channel-item " data-index="48" tabindex="0">
+      Karate Kid: Efsane Dövüşçüler
+     </div>
+     <div class="channel-item " data-index="49" tabindex="0">
+      Kirpi Sonic 3
+     </div>
+     <div class="channel-item " data-index="50" tabindex="0">
+      Parmak Çocuk Emma
+     </div>
+     <div class="channel-item " data-index="51" tabindex="0">
+      Caramelo
+     </div>
+     <div class="channel-item " data-index="52" tabindex="0">
+      Bebek Bakıcısının Maceraları
+     </div>
+     <div class="channel-item " data-index="53" tabindex="0">
+      Saman Altında Su
+     </div>
+     <div class="channel-item " data-index="54" tabindex="0">
+      Köstebekgiller: Ata Tohumu Muhafızları
+     </div>
+     <div class="channel-item " data-index="55" tabindex="0">
+      Köstebekgiller 2: Gölge'nin Tılsımı
+     </div>
+     <div class="channel-item " data-index="56" tabindex="0">
+      Panda Planı
+     </div>
+     <div class="channel-item " data-index="57" tabindex="0">
+      İnanmalısın
+     </div>
+     <div class="channel-item " data-index="58" tabindex="0">
+      Zor Bir Gün
+     </div>
+     <div class="channel-item " data-index="59" tabindex="0">
+      It’s Okay!
+     </div>
+     <div class="channel-item " data-index="60" tabindex="0">
+      Buffalo Kids
+     </div>
+     <div class="channel-item " data-index="61" tabindex="0">
+      Alies Home
+     </div>
+     <div class="channel-item " data-index="62" tabindex="0">
+      Yıldırım Ailesi Dönüyor
+     </div>
+     <div class="channel-item " data-index="63" tabindex="0">
+      Bixler Lisesi: Özel Dedektif
+     </div>
+     <div class="channel-item " data-index="64" tabindex="0">
+      Robin and the Hoods
+     </div>
+     <div class="channel-item " data-index="65" tabindex="0">
+      Tembeller Ailesi
+     </div>
+     <div class="channel-item " data-index="66" tabindex="0">
+      Köpek ve Midilli
+     </div>
+     <div class="channel-item " data-index="67" tabindex="0">
+      Genç Winnetou ve Kayıp Buffalolar
+     </div>
+     <div class="channel-item " data-index="68" tabindex="0">
+      Şut ve Gol
+     </div>
+     <div class="channel-item " data-index="69" tabindex="0">
+      Zombiler 4: Vampirlerin Şafağı
+     </div>
+     <div class="channel-item " data-index="70" tabindex="0">
+      Dedektif Sun ve Ekibi: Kurtarma Operasyonu
+     </div>
+     <div class="channel-item " data-index="71" tabindex="0">
+      Tichá pošta
+     </div>
+     <div class="channel-item " data-index="72" tabindex="0">
+      Flow: Bir Kedinin Yolculuğu
+     </div>
+     <div class="channel-item " data-index="73" tabindex="0">
+      Young Hearts
+     </div>
+     <div class="channel-item " data-index="74" tabindex="0">
+      Return to Wickensburg
+     </div>
+     <div class="channel-item " data-index="75" tabindex="0">
+      El Dorado yolu
+     </div>
+     <div class="channel-item " data-index="76" tabindex="0">
+      Pamuk Prenses
+     </div>
+     <div class="channel-item " data-index="77" tabindex="0">
+      Noel Baba 3
+     </div>
+     <div class="channel-item " data-index="78" tabindex="0">
+      Noel Baba
+     </div>
+     <div class="channel-item " data-index="79" tabindex="0">
+      Noel Baba 2
+     </div>
+     <div class="channel-item " data-index="80" tabindex="0">
+      Misyon: Eğlence Okulu
+     </div>
+     <div class="channel-item " data-index="81" tabindex="0">
+      Lucy Artık Bir Gangster
+     </div>
+     <div class="channel-item " data-index="82" tabindex="0">
+      From This Day Forward
+     </div>
+     <div class="channel-item " data-index="83" tabindex="0">
+      Tatlı Bela
+     </div>
+     <div class="channel-item " data-index="84" tabindex="0">
+      Niko - Yıldızlara yolculuk
+     </div>
+     <div class="channel-item " data-index="85" tabindex="0">
+      Niko: Kuzey Işıklarının Ötesinde
+     </div>
+     <div class="channel-item " data-index="86" tabindex="0">
+      Where Your Heart Belongs
+     </div>
+     <div class="channel-item " data-index="87" tabindex="0">
+      Super Detention
+     </div>
+     <div class="channel-item " data-index="88" tabindex="0">
+      Bayramlık
+     </div>
+     <div class="channel-item " data-index="89" tabindex="0">
+      Noelle
+     </div>
+     <div class="channel-item " data-index="90" tabindex="0">
+      100% Wolf
+     </div>
+     <div class="channel-item " data-index="91" tabindex="0">
+      Yolun Başında
+     </div>
+     <div class="channel-item " data-index="92" tabindex="0">
+      Tale of the Forest Unicorn
+     </div>
+     <div class="channel-item " data-index="93" tabindex="0">
+      Dounia et la Princesse d'Alep
+     </div>
+     <div class="channel-item " data-index="94" tabindex="0">
+      Dalya ve Kırmızı Kitap
+     </div>
+     <div class="channel-item " data-index="95" tabindex="0">
+      İkizler Takımı
+     </div>
+     <div class="channel-item " data-index="96" tabindex="0">
+      İskelenin Altında
+     </div>
+     <div class="channel-item " data-index="97" tabindex="0">
+      Nico the Unicorn
+     </div>
+     <div class="channel-item " data-index="98" tabindex="0">
+      Minik Örümcek Şarlot
+     </div>
+     <div class="channel-item " data-index="99" tabindex="0">
+      Whisper Island
+     </div>
+     <div class="channel-item " data-index="100" tabindex="0">
+      Vahşi Robot
+     </div>
+     <div class="channel-item " data-index="101" tabindex="0">
+      Dedemin Fişi
+     </div>
+     <div class="channel-item " data-index="102" tabindex="0">
+      Bücür
+     </div>
+     <div class="channel-item " data-index="103" tabindex="0">
+      Transformers: Başlangıç
+     </div>
+     <div class="channel-item " data-index="104" tabindex="0">
+      Zoey 102
+     </div>
+     <div class="channel-item " data-index="105" tabindex="0">
+      Muhteşem Ivan
+     </div>
+     <div class="channel-item " data-index="106" tabindex="0">
+      Wonderwell
+     </div>
+     <div class="channel-item " data-index="107" tabindex="0">
+      Wow! Message from Space
+     </div>
+     <div class="channel-item " data-index="108" tabindex="0">
+      Vacaciones de verano
+     </div>
+     <div class="channel-item " data-index="109" tabindex="0">
+      The Groomsmen: First Look
+     </div>
+     <div class="channel-item " data-index="110" tabindex="0">
+      ¡Salta!
+     </div>
+     <div class="channel-item " data-index="111" tabindex="0">
+      R.A.D.A.R.: The Adventures of the Bionic Dog
+     </div>
+     <div class="channel-item " data-index="112" tabindex="0">
+      My Christmas Hero
+     </div>
+     <div class="channel-item " data-index="113" tabindex="0">
+      Mikolo
+     </div>
+     <div class="channel-item " data-index="114" tabindex="0">
+      Heart of a Champion
+     </div>
+     <div class="channel-item " data-index="115" tabindex="0">
+      Glisten and the Merry Mission
+     </div>
+     <div class="channel-item " data-index="116" tabindex="0">
+      Christmas Wreaths and Ribbons
+     </div>
+     <div class="channel-item " data-index="117" tabindex="0">
+      Cesur Kanatlar: Doğanın Sesi
+     </div>
+     <div class="channel-item " data-index="118" tabindex="0">
+      Tatil Fiyaskosu
+     </div>
+     <div class="channel-item " data-index="119" tabindex="0">
+      The Slumber Party
+     </div>
+     <div class="channel-item " data-index="120" tabindex="0">
+      Feather Christmas
+     </div>
+     <div class="channel-item " data-index="121" tabindex="0">
+      Amityville Frankenstein
+     </div>
+     <div class="channel-item " data-index="122" tabindex="0">
+      The Night Before Christmas in Wonderland
+     </div>
+     <div class="channel-item " data-index="123" tabindex="0">
+      Penguen Arkadaşım
+     </div>
+     <div class="channel-item " data-index="124" tabindex="0">
+      Christmas On Cobbler Street
+     </div>
+     <div class="channel-item " data-index="125" tabindex="0">
+      I Can
+     </div>
+     <div class="channel-item " data-index="126" tabindex="0">
+      Çılgın Hırsız 4
+     </div>
+     <div class="channel-item " data-index="127" tabindex="0">
+      The Taste Of Freedom
+     </div>
+     <div class="channel-item " data-index="128" tabindex="0">
+      A Sudden Case of Christmas
+     </div>
+     <div class="channel-item " data-index="129" tabindex="0">
+      A Holiday for Harmony
+     </div>
+     <div class="channel-item " data-index="130" tabindex="0">
+      Average Joe
+     </div>
+     <div class="channel-item " data-index="131" tabindex="0">
+      Treasure Trackers
+     </div>
+     <div class="channel-item " data-index="132" tabindex="0">
+      Branching Out
+     </div>
+     <div class="channel-item " data-index="133" tabindex="0">
+      Meraklı Kedinin 10 Yaşamı
+     </div>
+     <div class="channel-item " data-index="134" tabindex="0">
+      The Greatest Inheritance
+     </div>
+     <div class="channel-item " data-index="135" tabindex="0">
+      Windcatcher
+     </div>
+     <div class="channel-item " data-index="136" tabindex="0">
+      Superpietonii Zurli
+     </div>
+     <div class="channel-item " data-index="137" tabindex="0">
+      Skelly
+     </div>
+     <div class="channel-item " data-index="138" tabindex="0">
+      Man and Witch: The Dance of a Thousand Steps
+     </div>
+     <div class="channel-item " data-index="139" tabindex="0">
+      Tails of Christmas
+     </div>
+     <div class="channel-item " data-index="140" tabindex="0">
+      The Legend of Catclaws Mountain
+     </div>
+     <div class="channel-item " data-index="141" tabindex="0">
+      The Neon Highway
+     </div>
+     <div class="channel-item " data-index="142" tabindex="0">
+      Harold ve Mor Tebeşir
+     </div>
+     <div class="channel-item " data-index="143" tabindex="0">
+      Titip Surat Untuk Tuhan
+     </div>
+     <div class="channel-item " data-index="144" tabindex="0">
+      Autumn And The Black Jaguar
+     </div>
+     <div class="channel-item " data-index="145" tabindex="0">
+      Hayali Arkadaşlar
+     </div>
+     <div class="channel-item " data-index="146" tabindex="0">
+      Oyuncaklar Firarda
+     </div>
+     <div class="channel-item " data-index="147" tabindex="0">
+      Zamanın Bekçileri
+     </div>
+     <div class="channel-item " data-index="148" tabindex="0">
+      Tombul Mombul Takımı: Sırt Sırta
+     </div>
+     <div class="channel-item " data-index="149" tabindex="0">
+      200% Wolf
+     </div>
+     <div class="channel-item " data-index="150" tabindex="0">
+      Iksir
+     </div>
+     <div class="channel-item " data-index="151" tabindex="0">
+      Lassie: Yepyeni Bir Macera
+     </div>
+     <div class="channel-item " data-index="152" tabindex="0">
+      Kung Fu Panda 4
+     </div>
+     <div class="channel-item " data-index="153" tabindex="0">
+      Kahraman Kuyruklar
+     </div>
+     <div class="channel-item " data-index="154" tabindex="0">
+      Ostwind: Aris Ankunft
+     </div>
+     <div class="channel-item " data-index="155" tabindex="0">
+      Bikini Kasabası'nı Kurtarmak: Sandy Cheeks Filmi
+     </div>
+     <div class="channel-item " data-index="156" tabindex="0">
+      Garfield
+     </div>
+     <div class="channel-item " data-index="157" tabindex="0">
+      Neşeli Kanatlar: Büyük Göç
+     </div>
+     <div class="channel-item " data-index="158" tabindex="0">
+      Me contro Te - Il film: Vacanze in Transilvania
+     </div>
+     <div class="channel-item " data-index="159" tabindex="0">
+      Descendants: The Rise of Red
+     </div>
+     <div class="channel-item " data-index="160" tabindex="0">
+      El campeón
+     </div>
+     <div class="channel-item " data-index="161" tabindex="0">
+      Bak Şu Leyleğe
+     </div>
+     <div class="channel-item " data-index="162" tabindex="0">
+      Bak Şu Leyleğe 2: Zümrüt Taşının Peşinde
+     </div>
+     <div class="channel-item " data-index="163" tabindex="0">
+      Hayalî
+     </div>
+     <div class="channel-item " data-index="164" tabindex="0">
+      Masal Şatosu: Gizemli Misafir
+     </div>
+     <div class="channel-item " data-index="165" tabindex="0">
+      Altın Gaga ve Macera Çetesi
+     </div>
+     <div class="channel-item " data-index="166" tabindex="0">
+      Cesur Balina Katak
+     </div>
+     <div class="channel-item " data-index="167" tabindex="0">
+      Ke an Danh
+     </div>
+     <div class="channel-item " data-index="168" tabindex="0">
+      A Greyhound of a Girl
+     </div>
+     <div class="channel-item " data-index="169" tabindex="0">
+      Akademia pana Kleksa
+     </div>
+     <div class="channel-item " data-index="170" tabindex="0">
+      Ultraman: Rising
+     </div>
+     <div class="channel-item " data-index="171" tabindex="0">
+      Beyaz Kuş
+     </div>
+     <div class="channel-item " data-index="172" tabindex="0">
+      Ördeklerin Göçü
+     </div>
+     <div class="channel-item " data-index="173" tabindex="0">
+      Orman Çetesi: Dünya Turu
+     </div>
+     <div class="channel-item " data-index="174" tabindex="0">
+      Orman Çetesi
+     </div>
+     <div class="channel-item " data-index="175" tabindex="0">
+      Ben Büyüdüm 2
+     </div>
+     <div class="channel-item " data-index="176" tabindex="0">
+      Ters Yüz 2
+     </div>
+     <div class="channel-item " data-index="177" tabindex="0">
+      Suki demo kirai na amanojaku
+     </div>
+     <div class="channel-item " data-index="178" tabindex="0">
+      Büyük Macera
+     </div>
+     <div class="channel-item " data-index="179" tabindex="0">
+      Büyük Macera 2: Sürpriz Misafir
+     </div>
+     <div class="channel-item " data-index="180" tabindex="0">
+      Zıpır Dedektif ve Altın Arı Kovanı
+     </div>
+     <div class="channel-item " data-index="181" tabindex="0">
+      The Velveteen Rabbit
+     </div>
+     <div class="channel-item " data-index="182" tabindex="0">
+      Yıldız Unicorn Thelma
+     </div>
+     <div class="channel-item " data-index="183" tabindex="0">
+      Mavka: Ormanın Şarkısı
+     </div>
+     <div class="channel-item " data-index="184" tabindex="0">
+      Craig Before the Creek
+     </div>
+     <div class="channel-item " data-index="185" tabindex="0">
+      Me contro Te - il Film: Missione Giungla
+     </div>
+     <div class="channel-item " data-index="186" tabindex="0">
+      Lassie - Eine abenteuerliche Reise
+     </div>
+     <div class="channel-item " data-index="187" tabindex="0">
+      Too!
+     </div>
+     <div class="channel-item " data-index="188" tabindex="0">
+      Bıcırıklar: Yeni Yuvamız
+     </div>
+     <div class="channel-item " data-index="189" tabindex="0">
+      Küçük Allen ve Galaksi Yolcusu
+     </div>
+     <div class="channel-item " data-index="190" tabindex="0">
+      Ayı Kardeşler: Dünya'ya Dönüş
+     </div>
+     <div class="channel-item " data-index="191" tabindex="0">
+      Woody Woodpecker Goes to Camp
+     </div>
+     <div class="channel-item " data-index="192" tabindex="0">
+      Neşeli Çiftlik: Tren Kalkıyor!
+     </div>
+     <div class="channel-item " data-index="193" tabindex="0">
+      Bremenskie muzykanty
+     </div>
+     <div class="channel-item " data-index="194" tabindex="0">
+      Santaman
+     </div>
+     <div class="channel-item " data-index="195" tabindex="0">
+      Troller Hep Beraber
+     </div>
+     <div class="channel-item " data-index="196" tabindex="0">
+      Casagrande Ailesi (Film)
+     </div>
+     <div class="channel-item " data-index="197" tabindex="0">
+      Kaptan Porsuk Kayıp Hazinenin Peşinde
+     </div>
+     <div class="channel-item " data-index="198" tabindex="0">
+      Karlar Kralı Norm 3: Aile Tatili
+     </div>
+     <div class="channel-item " data-index="199" tabindex="0">
+      Mucize: Uğur Böceği ile Kara Kedi
+     </div>
+     <div class="channel-item " data-index="200" tabindex="0">
+      Barbie and Stacie to the Rescue
+     </div>
+     <div class="channel-item " data-index="201" tabindex="0">
+      Paw Patrol: Süper Film
+     </div>
+     <div class="channel-item " data-index="202" tabindex="0">
+      The Inventor
+     </div>
+     <div class="channel-item " data-index="203" tabindex="0">
+      Franklin
+     </div>
+     <div class="channel-item " data-index="204" tabindex="0">
+      Yaz Kampına Kaçış
+     </div>
+     <div class="channel-item " data-index="205" tabindex="0">
+      Yumurtalar Firarda: Afrika Macerası
+     </div>
+     <div class="channel-item " data-index="206" tabindex="0">
+      Orion ve Karanlık
+     </div>
+     <div class="channel-item " data-index="207" tabindex="0">
+      Belle ve Sebastian: Cesur Dostum
+     </div>
+     <div class="channel-item " data-index="208" tabindex="0">
+      Süper Aile
+     </div>
+     <div class="channel-item " data-index="209" tabindex="0">
+      Pinokyo: Sihirli Yolculuk
+     </div>
+     <div class="channel-item " data-index="210" tabindex="0">
+      Canterville Hayaleti
+     </div>
+     <div class="channel-item " data-index="211" tabindex="0">
+      Astronot Köpekler: Tropikal Macera
+     </div>
+     <div class="channel-item " data-index="212" tabindex="0">
+      Fındıkkıran ve Sihirli Flüt
+     </div>
+     <div class="channel-item " data-index="213" tabindex="0">
+      80 Günde Devrialem
+     </div>
+     <div class="channel-item " data-index="214" tabindex="0">
+      Diary of a Wimpy Kid Christmas: Cabin Fever
+     </div>
+     <div class="channel-item " data-index="215" tabindex="0">
+      Tavuklar Firarda: Kurtarma Operasyonu
+     </div>
+     <div class="channel-item " data-index="216" tabindex="0">
+      Küçük Batman'in Noeli
+     </div>
+     <div class="channel-item " data-index="217" tabindex="0">
+      Şimdi İşler Karıştı
+     </div>
+     <div class="channel-item " data-index="218" tabindex="0">
+      Kim Demiş Kötüyüz Diye? - Çok Kötü Bir Noel
+     </div>
+     <div class="channel-item " data-index="219" tabindex="0">
+      Leo
+     </div>
+     <div class="channel-item " data-index="220" tabindex="0">
+      Karda Koşmak
+     </div>
+     <div class="channel-item " data-index="221" tabindex="0">
+      Claus Ailesi 3
+     </div>
+     <div class="channel-item " data-index="222" tabindex="0">
+      Kayıp Köpek
+     </div>
+     <div class="channel-item " data-index="223" tabindex="0">
+      Beethoven's 4th
+     </div>
+     <div class="channel-item " data-index="224" tabindex="0">
+      c'est trop
+     </div>
+     <div class="channel-item " data-index="225" tabindex="0">
+      Müthiş Dadı... Müthiş Baba
+     </div>
+     <div class="channel-item " data-index="226" tabindex="0">
+      Christmas Eve
+     </div>
+     <div class="channel-item " data-index="227" tabindex="0">
+      The Man Who Invented Christmas
+     </div>
+     <div class="channel-item " data-index="228" tabindex="0">
+      Dikkat Köpek Var
+     </div>
+     <div class="channel-item " data-index="229" tabindex="0">
+      Coin Heist
+     </div>
+     <div class="channel-item " data-index="230" tabindex="0">
+      Küçük afacanlar
+     </div>
+     <div class="channel-item " data-index="231" tabindex="0">
+      Sürüsüne bereket
+     </div>
+     <div class="channel-item " data-index="232" tabindex="0">
+      Tamamlamadık mı Hala?
+     </div>
+     <div class="channel-item " data-index="233" tabindex="0">
+      Treasure Buddies
+     </div>
+     <div class="channel-item " data-index="234" tabindex="0">
+      Kız Arkadaşım 2
+     </div>
+     <div class="channel-item " data-index="235" tabindex="0">
+      Kırmızı balon'un yolculuğu
+     </div>
+     <div class="channel-item " data-index="236" tabindex="0">
+      Madeline
+     </div>
+     <div class="channel-item " data-index="237" tabindex="0">
+      Küçük Prenses
+     </div>
+     <div class="channel-item " data-index="238" tabindex="0">
+      Mesut aile
+     </div>
+     <div class="channel-item " data-index="239" tabindex="0">
+      İki Yavru
+     </div>
+     <div class="channel-item " data-index="240" tabindex="0">
+      Problem Çocuk
+     </div>
+     <div class="channel-item " data-index="241" tabindex="0">
+      Raise Your Voice
+     </div>
+     <div class="channel-item " data-index="242" tabindex="0">
+      Deck the Halls
+     </div>
+     <div class="channel-item " data-index="243" tabindex="0">
+      High School Musical 2
+     </div>
+     <div class="channel-item " data-index="244" tabindex="0">
+      High School Musical
+     </div>
+     <div class="channel-item " data-index="245" tabindex="0">
+      Hans Christian Andersen
+     </div>
+     <div class="channel-item " data-index="246" tabindex="0">
+      Rocky Road
+     </div>
+     <div class="channel-item " data-index="247" tabindex="0">
+      Dostluğun Gücü
+     </div>
+     <div class="channel-item " data-index="248" tabindex="0">
+      Monkey in the Middle
+     </div>
+     <div class="channel-item " data-index="249" tabindex="0">
+      Babam Söz Verdi 2
+     </div>
+     <div class="channel-item " data-index="250" tabindex="0">
+      Dostluğun Gücü: Umut
+     </div>
+     <div class="channel-item " data-index="251" tabindex="0">
+      Cloud 9
+     </div>
+     <div class="channel-item " data-index="252" tabindex="0">
+      As Dreamers Do
+     </div>
+     <div class="channel-item " data-index="253" tabindex="0">
+      Once I Was a Beehive
+     </div>
+     <div class="channel-item " data-index="254" tabindex="0">
+      Red Dog: True Blue
+     </div>
+     <div class="channel-item " data-index="255" tabindex="0">
+      Umudunu Kaybetme
+     </div>
+     <div class="channel-item " data-index="256" tabindex="0">
+      Finding Fish
+     </div>
+     <div class="channel-item " data-index="257" tabindex="0">
+      Elveda Christopher Robin
+     </div>
+     <div class="channel-item " data-index="258" tabindex="0">
+      Benji
+     </div>
+     <div class="channel-item " data-index="259" tabindex="0">
+      Bulutların Ötesinde
+     </div>
+     <div class="channel-item " data-index="260" tabindex="0">
+      Senin için Grace
+     </div>
+     <div class="channel-item " data-index="261" tabindex="0">
+      Mutlu Cadilar Bayrami
+     </div>
+     <div class="channel-item " data-index="262" tabindex="0">
+      My Science Project
+     </div>
+     <div class="channel-item " data-index="263" tabindex="0">
+      Patrick
+     </div>
+     <div class="channel-item " data-index="264" tabindex="0">
+      Troop Zero
+     </div>
+     <div class="channel-item " data-index="265" tabindex="0">
+      Büyükbabalar Yuvada
+     </div>
+     <div class="channel-item " data-index="266" tabindex="0">
+      Şimdi Yandık!
+     </div>
+     <div class="channel-item " data-index="267" tabindex="0">
+      18 Hediye
+     </div>
+     <div class="channel-item " data-index="268" tabindex="0">
+      The Christmas Heart
+     </div>
+     <div class="channel-item " data-index="269" tabindex="0">
+      Das Haus der Krokodile
+     </div>
+     <div class="channel-item " data-index="270" tabindex="0">
+      Küçük Vampir
+     </div>
+     <div class="channel-item " data-index="271" tabindex="0">
+      Küçük kardeşim
+     </div>
+     <div class="channel-item " data-index="272" tabindex="0">
+      Big Fat Liar
+     </div>
+     <div class="channel-item " data-index="273" tabindex="0">
+      Muppetlar New York'ta
+     </div>
+     <div class="channel-item " data-index="274" tabindex="0">
+      Homeward Bound II: Lost in San Francisco
+     </div>
+     <div class="channel-item " data-index="275" tabindex="0">
+      Ginny Weds Sunny
+     </div>
+     <div class="channel-item " data-index="276" tabindex="0">
+      Yine Noel!
+     </div>
+     <div class="channel-item " data-index="277" tabindex="0">
+      Fahim
+     </div>
+     <div class="channel-item " data-index="278" tabindex="0">
+      Tombul
+     </div>
+     <div class="channel-item " data-index="279" tabindex="0">
+      Küçük Dev Kadınlar
+     </div>
+     <div class="channel-item " data-index="280" tabindex="0">
+      Rock My Heart
+     </div>
+     <div class="channel-item " data-index="281" tabindex="0">
+      La distancia más larga
+     </div>
+     <div class="channel-item " data-index="282" tabindex="0">
+      Wickie: Küçük Viking
+     </div>
+     <div class="channel-item " data-index="283" tabindex="0">
+      Komando dadı
+     </div>
+     <div class="channel-item " data-index="284" tabindex="0">
+      Müfettiş Gadget
+     </div>
+     <div class="channel-item " data-index="285" tabindex="0">
+      Sinbad harikalar diyarında
+     </div>
+     <div class="channel-item " data-index="286" tabindex="0">
+      Son Muhteşem Kahraman
+     </div>
+     <div class="channel-item " data-index="287" tabindex="0">
+      Underdog
+     </div>
+     <div class="channel-item " data-index="288" tabindex="0">
+      Şimşekkıran
+     </div>
+     <div class="channel-item " data-index="289" tabindex="0">
+      Uzaylı Kuklalar
+     </div>
+     <div class="channel-item " data-index="290" tabindex="0">
+      Yuvaya Dönüş
+     </div>
+     <div class="channel-item " data-index="291" tabindex="0">
+      Muppets Aranıyor
+     </div>
+     <div class="channel-item " data-index="292" tabindex="0">
+      Cesur Köpek
+     </div>
+     <div class="channel-item " data-index="293" tabindex="0">
+      Code M
+     </div>
+     <div class="channel-item " data-index="294" tabindex="0">
+      Kid West
+     </div>
+     <div class="channel-item " data-index="295" tabindex="0">
+      Ostwind 3 - Aufbruch nach Ora
+     </div>
+     <div class="channel-item " data-index="296" tabindex="0">
+      Show Dogs
+     </div>
+     <div class="channel-item " data-index="297" tabindex="0">
+      Son Hediye
+     </div>
+     <div class="channel-item " data-index="298" tabindex="0">
+      Tom Sawyer &amp; Huckleberry Finn
+     </div>
+     <div class="channel-item " data-index="299" tabindex="0">
+      Beethoven'ın Hazine Macerası
+     </div>
+     <div class="channel-item " data-index="300" tabindex="0">
+      Külkedisi Masalı
+     </div>
+     <div class="channel-item " data-index="301" tabindex="0">
+      Hero Mode
+     </div>
+     <div class="channel-item " data-index="302" tabindex="0">
+      Kaptein Sabeltann og skatten i Lama Rama
+     </div>
+     <div class="channel-item " data-index="303" tabindex="0">
+      Journey to the Forbidden Valley
+     </div>
+     <div class="channel-item " data-index="304" tabindex="0">
+      Kanatlarını Aç
+     </div>
+     <div class="channel-item " data-index="305" tabindex="0">
+      Kazanmak Arzusu
+     </div>
+     <div class="channel-item " data-index="306" tabindex="0">
+      Ramona and Beezus
+     </div>
+     <div class="channel-item " data-index="307" tabindex="0">
+      Dakota's Summer
+     </div>
+     <div class="channel-item " data-index="308" tabindex="0">
+      Hayat Okulu
+     </div>
+     <div class="channel-item " data-index="309" tabindex="0">
+      Süper Patiler
+     </div>
+     <div class="channel-item " data-index="310" tabindex="0">
+      el perro millonario
+     </div>
+     <div class="channel-item " data-index="311" tabindex="0">
+      Puppy Swap: Love Unleashed
+     </div>
+     <div class="channel-item " data-index="312" tabindex="0">
+      Noel Hediyesi Bombardımanı
+     </div>
+     <div class="channel-item " data-index="313" tabindex="0">
+      Gibby
+     </div>
+     <div class="channel-item " data-index="314" tabindex="0">
+      Get Santa
+     </div>
+     <div class="channel-item " data-index="315" tabindex="0">
+      Timothy Green'in Sıra dışı Yaşamı
+     </div>
+     <div class="channel-item " data-index="316" tabindex="0">
+      Kiwi Flyer
+     </div>
+     <div class="channel-item " data-index="317" tabindex="0">
+      Çifte Bela: Sihirli Ayna
+     </div>
+     <div class="channel-item " data-index="318" tabindex="0">
+      Altın Yüzücüler
+     </div>
+     <div class="channel-item " data-index="319" tabindex="0">
+      Arkadaşım Benjamin
+     </div>
+     <div class="channel-item " data-index="320" tabindex="0">
+      Delinquent
+     </div>
+     <div class="channel-item " data-index="321" tabindex="0">
+      A Christmas Prince: The Royal Baby
+     </div>
+     <div class="channel-item " data-index="322" tabindex="0">
+      Back of the Net
+     </div>
+     <div class="channel-item " data-index="323" tabindex="0">
+      Marshall the Miracle Dog
+     </div>
+     <div class="channel-item " data-index="324" tabindex="0">
+      Chestnut: Hero of Central Park
+     </div>
+     <div class="channel-item " data-index="325" tabindex="0">
+      Afacanlar Yuvada
+     </div>
+     <div class="channel-item " data-index="326" tabindex="0">
+      Dans Terapisi
+     </div>
+     <div class="channel-item " data-index="327" tabindex="0">
+      Noel Baba Eğitimde
+     </div>
+     <div class="channel-item " data-index="328" tabindex="0">
+      Bruno &amp; Boots: This Can't Be Happening at Macdonald Hall
+     </div>
+     <div class="channel-item " data-index="329" tabindex="0">
+      Sadece Bir Baba Var: Kayınvalidenin Gelişi
+     </div>
+     <div class="channel-item " data-index="330" tabindex="0">
+      Arkadaşım Ördek
+     </div>
+     <div class="channel-item " data-index="331" tabindex="0">
+      Bruno &amp; Boots: The Wizzle War
+     </div>
+     <div class="channel-item " data-index="332" tabindex="0">
+      Wiener Dog Internationals
+     </div>
+     <div class="channel-item " data-index="333" tabindex="0">
+      Gråtass gir gass
+     </div>
+     <div class="channel-item " data-index="334" tabindex="0">
+      Uilenbal
+     </div>
+     <div class="channel-item " data-index="335" tabindex="0">
+      A Cowgirl's Story
+     </div>
+     <div class="channel-item " data-index="336" tabindex="0">
+      Klara
+     </div>
+     <div class="channel-item " data-index="337" tabindex="0">
+      Alabama Moon
+     </div>
+     <div class="channel-item " data-index="338" tabindex="0">
+      Afacanlar Kampta
+     </div>
+     <div class="channel-item " data-index="339" tabindex="0">
+      Isabelle Dances Into the Spotlight
+     </div>
+     <div class="channel-item " data-index="340" tabindex="0">
+      We Don't Belong Here
+     </div>
+     <div class="channel-item " data-index="341" tabindex="0">
+      Dalgalara Karşı
+     </div>
+     <div class="channel-item " data-index="342" tabindex="0">
+      Primaire
+     </div>
+     <div class="channel-item " data-index="343" tabindex="0">
+      I'll Be Home for Christmas
+     </div>
+     <div class="channel-item " data-index="344" tabindex="0">
+      Noel Koyu'na Dönüs
+     </div>
+     <div class="channel-item " data-index="345" tabindex="0">
+      An Invisible Sign
+     </div>
+     <div class="channel-item " data-index="346" tabindex="0">
+      Beethoven Kırmızı Halıda
+     </div>
+     <div class="channel-item " data-index="347" tabindex="0">
+      Jesus Henry Christ
+     </div>
+     <div class="channel-item " data-index="348" tabindex="0">
+      Hayal Et
+     </div>
+     <div class="channel-item " data-index="349" tabindex="0">
+      Wiener Dog Nationals
+     </div>
+     <div class="channel-item " data-index="350" tabindex="0">
+      Hayatın Getirdikleri
+     </div>
+     <div class="channel-item " data-index="351" tabindex="0">
+      İki babalık
+     </div>
+     <div class="channel-item " data-index="352" tabindex="0">
+      Kırmızı Köpek
+     </div>
+     <div class="channel-item " data-index="353" tabindex="0">
+      Yılbaşı Sürprizi
+     </div>
+     <div class="channel-item " data-index="354" tabindex="0">
+      Kit Kittredge: An American Girl
+     </div>
+     <div class="channel-item " data-index="355" tabindex="0">
+      Marley &amp; Me: The Puppy Years
+     </div>
+     <div class="channel-item " data-index="356" tabindex="0">
+      Marley ve Ben
+     </div>
+     <div class="channel-item " data-index="357" tabindex="0">
+      Büyülü Krallık
+     </div>
+     <div class="channel-item " data-index="358" tabindex="0">
+      McFarland
+     </div>
+     <div class="channel-item " data-index="359" tabindex="0">
+      Secondhand Lions
+     </div>
+     <div class="channel-item " data-index="360" tabindex="0">
+      Hannah Montana: The Movie
+     </div>
+     <div class="channel-item " data-index="361" tabindex="0">
+      Change of Plans
+     </div>
+     <div class="channel-item " data-index="362" tabindex="0">
+      Christmas Cottage
+     </div>
+     <div class="channel-item " data-index="363" tabindex="0">
+      Sallan Yuvarlan
+     </div>
+     <div class="channel-item " data-index="364" tabindex="0">
+      Because of Winn-Dixie
+     </div>
+     <div class="channel-item " data-index="365" tabindex="0">
+      Camp Rock
+     </div>
+     <div class="channel-item " data-index="366" tabindex="0">
+      Son şarkı
+     </div>
+     <div class="channel-item " data-index="367" tabindex="0">
+      Christmas Mail
+     </div>
+     <div class="channel-item " data-index="368" tabindex="0">
+      High School Musical 3: Senior Year
+     </div>
+     <div class="channel-item " data-index="369" tabindex="0">
+      Du vent dans mes mollets
+     </div>
+     <div class="channel-item " data-index="370" tabindex="0">
+      Toast
+     </div>
+     <div class="channel-item " data-index="371" tabindex="0">
+      Küçük Tanık
+     </div>
+     <div class="channel-item " data-index="372" tabindex="0">
+      A Doggone Christmas
+     </div>
+     <div class="channel-item " data-index="373" tabindex="0">
+      The Watsons Go to Birmingham
+     </div>
+     <div class="channel-item " data-index="374" tabindex="0">
+      Christmas with a View
+     </div>
+     <div class="channel-item " data-index="375" tabindex="0">
+      Demiryolu Kaplanları
+     </div>
+     <div class="channel-item " data-index="376" tabindex="0">
+      Gizemli Büyükbaba
+     </div>
+     <div class="channel-item " data-index="377" tabindex="0">
+      Reality'den Sonra
+     </div>
+     <div class="channel-item " data-index="378" tabindex="0">
+      Muhteşem Gilly Hopkins
+     </div>
+     <div class="channel-item " data-index="379" tabindex="0">
+      Yolki lokhmatye
+     </div>
+     <div class="channel-item " data-index="380" tabindex="0">
+      Bouwdorp
+     </div>
+     <div class="channel-item " data-index="381" tabindex="0">
+      Lola auf der Erbse
+     </div>
+     <div class="channel-item " data-index="382" tabindex="0">
+      Chay Di Roi Tinh
+     </div>
+     <div class="channel-item " data-index="383" tabindex="0">
+      Hayat Mücadelesi
+     </div>
+     <div class="channel-item " data-index="384" tabindex="0">
+      Annie
+     </div>
+     <div class="channel-item " data-index="385" tabindex="0">
+      Ben Böyleyim
+     </div>
+     <div class="channel-item " data-index="386" tabindex="0">
+      Diş Perisi 2
+     </div>
+     <div class="channel-item " data-index="387" tabindex="0">
+      Kar Gelini
+     </div>
+     <div class="channel-item " data-index="388" tabindex="0">
+      Sune i Grekland - All Inclusive
+     </div>
+     <div class="channel-item " data-index="389" tabindex="0">
+      Grinç Müzikali
+     </div>
+     <div class="channel-item " data-index="390" tabindex="0">
+      A.R.C.H.I.E. 2
+     </div>
+     <div class="channel-item " data-index="391" tabindex="0">
+      Futbolkolik
+     </div>
+     <div class="channel-item " data-index="392" tabindex="0">
+      Sokak Arkadaşları
+     </div>
+     <div class="channel-item " data-index="393" tabindex="0">
+      Malibu Rescue
+     </div>
+     <div class="channel-item " data-index="394" tabindex="0">
+      Minik kahramanlar
+     </div>
+     <div class="channel-item " data-index="395" tabindex="0">
+      Dadı Büyükanne
+     </div>
+     <div class="channel-item " data-index="396" tabindex="0">
+      Heidi
+     </div>
+     <div class="channel-item " data-index="397" tabindex="0">
+      Süper Mario Kardeşler
+     </div>
+     <div class="channel-item " data-index="398" tabindex="0">
+      Düşler Bahçesi
+     </div>
+     <div class="channel-item " data-index="399" tabindex="0">
+      Saftirik Greg'in Günlüğü: Rodrick Kuralları
+     </div>
+     <div class="channel-item " data-index="400" tabindex="0">
+      Fırtına Çocuk
+     </div>
+     <div class="channel-item " data-index="401" tabindex="0">
+      Saftirik Greg'in Günlüğü
+     </div>
+     <div class="channel-item " data-index="402" tabindex="0">
+      Anne of Green Gables
+     </div>
+     <div class="channel-item " data-index="403" tabindex="0">
+      Annemsiz 10 Gün
+     </div>
+     <div class="channel-item " data-index="404" tabindex="0">
+      Noel'den Kaçış Yok
+     </div>
+     <div class="channel-item " data-index="405" tabindex="0">
+      Belle ve Sebastian 3: Bitmeyen Dostluk
+     </div>
+     <div class="channel-item " data-index="406" tabindex="0">
+      Rüzgârın Kardeşleri
+     </div>
+     <div class="channel-item " data-index="407" tabindex="0">
+      Sürprizli Gece
+     </div>
+     <div class="channel-item " data-index="408" tabindex="0">
+      Lomasankarit
+     </div>
+     <div class="channel-item " data-index="409" tabindex="0">
+      Mavi Mucize
+     </div>
+     <div class="channel-item " data-index="410" tabindex="0">
+      Klub wlóczykijów
+     </div>
+     <div class="channel-item " data-index="411" tabindex="0">
+      Fünf Freunde 4
+     </div>
+     <div class="channel-item " data-index="412" tabindex="0">
+      Bernie the Dolphin
+     </div>
+     <div class="channel-item " data-index="413" tabindex="0">
+      Asteriks ve Oburiks: Gizli Görevde
+     </div>
+     <div class="channel-item " data-index="414" tabindex="0">
+      Keith
+     </div>
+     <div class="channel-item " data-index="415" tabindex="0">
+      Bir Buçuk Polis
+     </div>
+     <div class="channel-item " data-index="416" tabindex="0">
+      Gerçek masallar
+     </div>
+     <div class="channel-item " data-index="417" tabindex="0">
+      Penny's Shadow
+     </div>
+     <div class="channel-item " data-index="418" tabindex="0">
+      Bingo
+     </div>
+     <div class="channel-item " data-index="419" tabindex="0">
+      Doktor Proktors prompepulver
+     </div>
+     <div class="channel-item " data-index="420" tabindex="0">
+      Chingisiin huuhduud
+     </div>
+     <div class="channel-item " data-index="421" tabindex="0">
+      Cowgirls 'n Angels
+     </div>
+     <div class="channel-item " data-index="422" tabindex="0">
+      Gulliver'in gezileri
+     </div>
+     <div class="channel-item " data-index="423" tabindex="0">
+      Hanni &amp; Nanni
+     </div>
+     <div class="channel-item " data-index="424" tabindex="0">
+      Macera adası
+     </div>
+     <div class="channel-item " data-index="425" tabindex="0">
+      İmparator'un Yolculuğu 2
+     </div>
+     <div class="channel-item " data-index="426" tabindex="0">
+      Yeni Yıl Köpekleri'nin Peşinde
+     </div>
+     <div class="channel-item " data-index="427" tabindex="0">
+      Okul Gezisi
+     </div>
+     <div class="channel-item " data-index="428" tabindex="0">
+      Sihirli taş
+     </div>
+     <div class="channel-item " data-index="429" tabindex="0">
+      Tom Sawyer
+     </div>
+     <div class="channel-item " data-index="430" tabindex="0">
+      Min søsters børn i Afrika
+     </div>
+     <div class="channel-item " data-index="431" tabindex="0">
+      Big Fat Liar 2
+     </div>
+     <div class="channel-item " data-index="432" tabindex="0">
+      Quatsch und die Nasenbärbande
+     </div>
+     <div class="channel-item " data-index="433" tabindex="0">
+      Lea to the Rescue
+     </div>
+     <div class="channel-item " data-index="434" tabindex="0">
+      Aïlo: Une odyssée en Laponie
+     </div>
+     <div class="channel-item " data-index="435" tabindex="0">
+      Babamı Arıyorum
+     </div>
+     <div class="channel-item " data-index="436" tabindex="0">
+      LEGO Marvel Avengers: Code Red
+     </div>
+     <div class="channel-item " data-index="437" tabindex="0">
+      Kırık Kaset
+     </div>
+     <div class="channel-item " data-index="438" tabindex="0">
+      Waffles + Mochi's Holiday Feast
+     </div>
+     <div class="channel-item " data-index="439" tabindex="0">
+      Angeliena
+     </div>
+     <div class="channel-item " data-index="440" tabindex="0">
+      Gerçek Hazine
+     </div>
+     <div class="channel-item " data-index="441" tabindex="0">
+      À fond
+     </div>
+     <div class="channel-item " data-index="442" tabindex="0">
+      Adadaki Hazine
+     </div>
+     <div class="channel-item " data-index="443" tabindex="0">
+      V82 - Revenge of the Nitros!
+     </div>
+     <div class="channel-item " data-index="444" tabindex="0">
+      Brothers
+     </div>
+     <div class="channel-item " data-index="445" tabindex="0">
+      Gümüş Patenler
+     </div>
+     <div class="channel-item " data-index="446" tabindex="0">
+      Bir Çilginin Içinde
+     </div>
+     <div class="channel-item " data-index="447" tabindex="0">
+      Hızlı yarışçı
+     </div>
+     <div class="channel-item " data-index="448" tabindex="0">
+      Kapımdaki casus
+     </div>
+     <div class="channel-item " data-index="449" tabindex="0">
+      Sihirli dağ
+     </div>
+     <div class="channel-item " data-index="450" tabindex="0">
+      Mr. Bean tatilde
+     </div>
+     <div class="channel-item " data-index="451" tabindex="0">
+      Benim Güzel Noel Şatom
+     </div>
+     <div class="channel-item " data-index="452" tabindex="0">
+      Midnight Stallion
+     </div>
+     <div class="channel-item " data-index="453" tabindex="0">
+      8-Bit Christmas
+     </div>
+     <div class="channel-item " data-index="454" tabindex="0">
+      Achtste-groepers huilen niet
+     </div>
+     <div class="channel-item " data-index="455" tabindex="0">
+      Kim Possible: Film Başlıyor
+     </div>
+     <div class="channel-item " data-index="456" tabindex="0">
+      Çakmaktaşlar Taş Vegas'ta
+     </div>
+     <div class="channel-item " data-index="457" tabindex="0">
+      Sevimli Dev
+     </div>
+     <div class="channel-item " data-index="458" tabindex="0">
+      Sivri Kafalar
+     </div>
+     <div class="channel-item " data-index="459" tabindex="0">
+      Her Şeye Evet
+     </div>
+     <div class="channel-item " data-index="460" tabindex="0">
+      Yeni Nesil 3
+     </div>
+     <div class="channel-item " data-index="461" tabindex="0">
+      Kazaam
+     </div>
+     <div class="channel-item " data-index="462" tabindex="0">
+      Su atı - Derinlerin efsanesi
+     </div>
+     <div class="channel-item " data-index="463" tabindex="0">
+      Pamuk Prenses'in Maceraları
+     </div>
+     <div class="channel-item " data-index="464" tabindex="0">
+      Hugo
+     </div>
+     <div class="channel-item " data-index="465" tabindex="0">
+      Karanlık Yükseliyor
+     </div>
+     <div class="channel-item " data-index="466" tabindex="0">
+      Nanny McPhee - Büyük patlama
+     </div>
+     <div class="channel-item " data-index="467" tabindex="0">
+      Harry and the Hendersons
+     </div>
+     <div class="channel-item " data-index="468" tabindex="0">
+      Earth to Echo
+     </div>
+     <div class="channel-item " data-index="469" tabindex="0">
+      Tuck Everlasting
+     </div>
+     <div class="channel-item " data-index="470" tabindex="0">
+      Reisen til julestjernen
+     </div>
+     <div class="channel-item " data-index="471" tabindex="0">
+      Rookie of the Year
+     </div>
+     <div class="channel-item " data-index="472" tabindex="0">
+      Escape to Witch Mountain
+     </div>
+     <div class="channel-item " data-index="473" tabindex="0">
+      Kaptan Sinbad'ın Altın Yolculuğu
+     </div>
+     <div class="channel-item " data-index="474" tabindex="0">
+      Şansa Bak
+     </div>
+     <div class="channel-item " data-index="475" tabindex="0">
+      Labyrinthus
+     </div>
+     <div class="channel-item " data-index="476" tabindex="0">
+      Robot Sevgilim
+     </div>
+     <div class="channel-item " data-index="477" tabindex="0">
+      Perili köşk
+     </div>
+     <div class="channel-item " data-index="478" tabindex="0">
+      Muhteşem ve Kudretli Oz
+     </div>
+     <div class="channel-item " data-index="479" tabindex="0">
+      Vampir Kız Kardeşler
+     </div>
+     <div class="channel-item " data-index="480" tabindex="0">
+      Kayıp Madalyon
+     </div>
+     <div class="channel-item " data-index="481" tabindex="0">
+      Maymun Kral
+     </div>
+     <div class="channel-item " data-index="482" tabindex="0">
+      Sevimli Hayalet
+     </div>
+     <div class="channel-item " data-index="483" tabindex="0">
+      Pojken med guldbyxorna
+     </div>
+     <div class="channel-item " data-index="484" tabindex="0">
+      The Christmas Dragon
+     </div>
+     <div class="channel-item " data-index="485" tabindex="0">
+      Midnight Sun
+     </div>
+     <div class="channel-item " data-index="486" tabindex="0">
+      Jem and the Holograms
+     </div>
+     <div class="channel-item " data-index="487" tabindex="0">
+      Mutlu Yıllar
+     </div>
+     <div class="channel-item " data-index="488" tabindex="0">
+      Sinbad: The Fifth Voyage
+     </div>
+     <div class="channel-item " data-index="489" tabindex="0">
+      Za niebieskimi drzwiami
+     </div>
+     <div class="channel-item " data-index="490" tabindex="0">
+      Kung Fu Yoga
+     </div>
+     <div class="channel-item " data-index="491" tabindex="0">
+      Yeni Nesil 2
+     </div>
+     <div class="channel-item " data-index="492" tabindex="0">
+      F.R.E.D.I.
+     </div>
+     <div class="channel-item " data-index="493" tabindex="0">
+      The Healer
+     </div>
+     <div class="channel-item " data-index="494" tabindex="0">
+      Christopher Robin
+     </div>
+     <div class="channel-item " data-index="495" tabindex="0">
+      Don Quixote
+     </div>
+     <div class="channel-item " data-index="496" tabindex="0">
+      The Little Mermaid
+     </div>
+     <div class="channel-item " data-index="497" tabindex="0">
+      Küçük Cadı
+     </div>
+     <div class="channel-item " data-index="498" tabindex="0">
+      Koca bebek Joe
+     </div>
+     <div class="channel-item " data-index="499" tabindex="0">
+      Kral Olacak Çocuk
+     </div>
+     <div class="channel-item " data-index="500" tabindex="0">
+      Fındıkkıran ve Dört Diyar
+     </div>
+     <div class="channel-item " data-index="501" tabindex="0">
+      Posledniy bogatyr
+     </div>
+     <div class="channel-item " data-index="502" tabindex="0">
+      Dumbo
+     </div>
+     <div class="channel-item " data-index="503" tabindex="0">
+      Büyülü Kaya
+     </div>
+     <div class="channel-item " data-index="504" tabindex="0">
+      Sevimli Dostlar
+     </div>
+     <div class="channel-item " data-index="505" tabindex="0">
+      Sihirli Bebek: Noel Arifesi
+     </div>
+     <div class="channel-item " data-index="506" tabindex="0">
+      Yıldız tozu
+     </div>
+     <div class="channel-item " data-index="507" tabindex="0">
+      Sihirli Güreşçi
+     </div>
+     <div class="channel-item " data-index="508" tabindex="0">
+      Short Circuit
+     </div>
+     <div class="channel-item " data-index="509" tabindex="0">
+      The Rack Pack
+     </div>
+     <div class="channel-item " data-index="510" tabindex="0">
+      Julekongen
+     </div>
+     <div class="channel-item " data-index="511" tabindex="0">
+      Sihirli Kızlar
+     </div>
+     <div class="channel-item " data-index="512" tabindex="0">
+      Şakrak Jangle'ın Noel Serüveni
+     </div>
+     <div class="channel-item " data-index="513" tabindex="0">
+      Noel Günlükleri 2
+     </div>
+     <div class="channel-item " data-index="514" tabindex="0">
+      Kahramanlık Sırası Bizde
+     </div>
+     <div class="channel-item " data-index="515" tabindex="0">
+      Return to Nim's Island
+     </div>
+     <div class="channel-item " data-index="516" tabindex="0">
+      Kuzular Kurtlara Karşı
+     </div>
+     <div class="channel-item " data-index="517" tabindex="0">
+      Kanca
+     </div>
+     <div class="channel-item " data-index="518" tabindex="0">
+      Familien Jul
+     </div>
+     <div class="channel-item " data-index="519" tabindex="0">
+      Garabet
+     </div>
+     <div class="channel-item " data-index="520" tabindex="0">
+      Labirent
+     </div>
+     <div class="channel-item " data-index="521" tabindex="0">
+      Peter Pan
+     </div>
+     <div class="channel-item " data-index="522" tabindex="0">
+      İsra ve Sihirli Kitap
+     </div>
+     <div class="channel-item " data-index="523" tabindex="0">
+      Wiplala
+     </div>
+     <div class="channel-item " data-index="524" tabindex="0">
+      Bir Tekboynuz Diliyorum
+     </div>
+     <div class="channel-item " data-index="525" tabindex="0">
+      Babamın Penguenleri
+     </div>
+     <div class="channel-item " data-index="526" tabindex="0">
+      Sihirli dadı
+     </div>
+     <div class="channel-item " data-index="527" tabindex="0">
+      Antboy: Den Røde Furies hævn
+     </div>
+     <div class="channel-item " data-index="528" tabindex="0">
+      The Holiday Calendar
+     </div>
+     <div class="channel-item " data-index="529" tabindex="0">
+      Mostly Ghostly: Have You Met My Ghoulfriend?
+     </div>
+     <div class="channel-item " data-index="530" tabindex="0">
+      Prenses gelin
+     </div>
+     <div class="channel-item " data-index="531" tabindex="0">
+      Robot Köpek
+     </div>
+     <div class="channel-item " data-index="532" tabindex="0">
+      Time Toys
+     </div>
+     <div class="channel-item " data-index="533" tabindex="0">
+      Battle for Skyark
+     </div>
+     <div class="channel-item " data-index="534" tabindex="0">
+      My Babysitter's a Vampire
+     </div>
+     <div class="channel-item " data-index="535" tabindex="0">
+      Northpole
+     </div>
+     <div class="channel-item " data-index="536" tabindex="0">
+      Santa Claws
+     </div>
+     <div class="channel-item " data-index="537" tabindex="0">
+      Diş Perisi
+     </div>
+     <div class="channel-item " data-index="538" tabindex="0">
+      Spooky Buddies
+     </div>
+     <div class="channel-item " data-index="539" tabindex="0">
+      Hayvan Bakıcısı
+     </div>
+     <div class="channel-item " data-index="540" tabindex="0">
+      Dolfje Weerwolfje
+     </div>
+     <div class="channel-item " data-index="541" tabindex="0">
+      Maça Devam
+     </div>
+     <div class="channel-item " data-index="542" tabindex="0">
+      Sihirli Oyuncaklar
+     </div>
+     <div class="channel-item " data-index="543" tabindex="0">
+      Beethoven'ın Yeni Yıl Macerası
+     </div>
+     <div class="channel-item " data-index="544" tabindex="0">
+      ich hab meine Lehrerin geschrumpft
+     </div>
+     <div class="channel-item " data-index="545" tabindex="0">
+      Freaky Friday
+     </div>
+     <div class="channel-item " data-index="546" tabindex="0">
+      Tobbi und das Fliewatüüt
+     </div>
+     <div class="channel-item " data-index="547" tabindex="0">
+      Uzaylılar Ev Ödevimi Yedi
+     </div>
+     <div class="channel-item " data-index="548" tabindex="0">
+      A.R.C.H.I.E.
+     </div>
+     <div class="channel-item " data-index="549" tabindex="0">
+      Korsanlar!
+     </div>
+     <div class="channel-item " data-index="550" tabindex="0">
+      Robinson ailesi
+     </div>
+     <div class="channel-item " data-index="551" tabindex="0">
+      Ördek Şehri: Kayıp Lambanın Sırrı
+     </div>
+     <div class="channel-item " data-index="552" tabindex="0">
+      The Jungle Book
+     </div>
+     <div class="channel-item " data-index="553" tabindex="0">
+      Mulan
+     </div>
+     <div class="channel-item " data-index="554" tabindex="0">
+      Neşeli ayaklar
+     </div>
+     <div class="channel-item " data-index="555" tabindex="0">
+      Kutup ekspresi
+     </div>
+     <div class="channel-item " data-index="556" tabindex="0">
+      Tarih Öncesi Topraklarda
+     </div>
+     <div class="channel-item " data-index="557" tabindex="0">
+      Tarzan
+     </div>
+     <div class="channel-item " data-index="558" tabindex="0">
+      Kronk's New Groove
+     </div>
+     <div class="channel-item " data-index="559" tabindex="0">
+      Superman: Doomsday
+     </div>
+     <div class="channel-item " data-index="560" tabindex="0">
+      Muhteşem fare dedektif
+     </div>
+     <div class="channel-item " data-index="561" tabindex="0">
+      Küçük kahraman
+     </div>
+     <div class="channel-item " data-index="562" tabindex="0">
+      Lady and the Tramp II: Scamp's Adventure
+     </div>
+     <div class="channel-item " data-index="563" tabindex="0">
+      ParaNorman
+     </div>
+     <div class="channel-item " data-index="564" tabindex="0">
+      Sevimli Cüceler: Cino ve Jülyet
+     </div>
+     <div class="channel-item " data-index="565" tabindex="0">
+      101 Dalmaçyalı
+     </div>
+     <div class="channel-item " data-index="566" tabindex="0">
+      Ayı Yogi
+     </div>
+     <div class="channel-item " data-index="567" tabindex="0">
+      Komşum Totoro
+     </div>
+     <div class="channel-item " data-index="568" tabindex="0">
+      Küçük kardeşim 2
+     </div>
+     <div class="channel-item " data-index="569" tabindex="0">
+      Köpekbalığı Hikayesi
+     </div>
+     <div class="channel-item " data-index="570" tabindex="0">
+      Küçük Denizkızı
+     </div>
+     <div class="channel-item " data-index="571" tabindex="0">
+      Leydinin aşkı
+     </div>
+     <div class="channel-item " data-index="572" tabindex="0">
+      Pamuk Prenses ve Yedi Cüce
+     </div>
+     <div class="channel-item " data-index="573" tabindex="0">
+      Ayı Winnie: Piglet'in Büyük Filmi
+     </div>
+     <div class="channel-item " data-index="574" tabindex="0">
+      Parti Hayvanları
+     </div>
+     <div class="channel-item " data-index="575" tabindex="0">
+      Pocahontas
+     </div>
+     <div class="channel-item " data-index="576" tabindex="0">
+      Scooby-Doo!: Mumyam Nerede?
+     </div>
+     <div class="channel-item " data-index="577" tabindex="0">
+      Sevimli Fare
+     </div>
+     <div class="channel-item " data-index="578" tabindex="0">
+      Süper Kahramanlar
+     </div>
+     <div class="channel-item " data-index="579" tabindex="0">
+      Şaşkın imparator
+     </div>
+     <div class="channel-item " data-index="580" tabindex="0">
+      Uçan Fil Dumbo
+     </div>
+     <div class="channel-item " data-index="581" tabindex="0">
+      Uyuyan Prenses
+     </div>
+     <div class="channel-item " data-index="582" tabindex="0">
+      Vahşi doğa
+     </div>
+     <div class="channel-item " data-index="583" tabindex="0">
+      Mimi wo sumaseba
+     </div>
+     <div class="channel-item " data-index="584" tabindex="0">
+      Şirinler
+     </div>
+     <div class="channel-item " data-index="585" tabindex="0">
+      Ninja Kaplumbağalar 4: Ölümsüz
+     </div>
+     <div class="channel-item " data-index="586" tabindex="0">
+      Doğal Kahramanlar
+     </div>
+     <div class="channel-item " data-index="587" tabindex="0">
+      The Smurfs: The Legend of Smurfy Hollow
+     </div>
+     <div class="channel-item " data-index="588" tabindex="0">
+      Horton Kimi Duyuyor!
+     </div>
+     <div class="channel-item " data-index="589" tabindex="0">
+      Pinocchio
+     </div>
+     <div class="channel-item " data-index="590" tabindex="0">
+      Sevimli Kahraman
+     </div>
+     <div class="channel-item " data-index="591" tabindex="0">
+      Lego Filmi
+     </div>
+     <div class="channel-item " data-index="592" tabindex="0">
+      Kahraman İkili
+     </div>
+     <div class="channel-item " data-index="593" tabindex="0">
+      Uçaklar 2: Söndür ve Kurtar
+     </div>
+     <div class="channel-item " data-index="594" tabindex="0">
+      Postacı Pat
+     </div>
+     <div class="channel-item " data-index="595" tabindex="0">
+      Oz Efsanesi
+     </div>
+     <div class="channel-item " data-index="596" tabindex="0">
+      Rio 2
+     </div>
+     <div class="channel-item " data-index="597" tabindex="0">
+      Köfte Yağmuru 2
+     </div>
+     <div class="channel-item " data-index="598" tabindex="0">
+      Uçaklar
+     </div>
+     <div class="channel-item " data-index="599" tabindex="0">
+      Acemi Gladyatör
+     </div>
+     <div class="channel-item " data-index="600" tabindex="0">
+      Şirinler 2
+     </div>
+     <div class="channel-item " data-index="601" tabindex="0">
+      Minuscule: Kayıp Karıncalar Vadisi
+     </div>
+     <div class="channel-item " data-index="602" tabindex="0">
+      Cesur Zebra
+     </div>
+     <div class="channel-item " data-index="603" tabindex="0">
+      Fındık İşi
+     </div>
+     <div class="channel-item " data-index="604" tabindex="0">
+      Ejderhalar: Ejderha Yarışçılarının Şafağı
+     </div>
+     <div class="channel-item " data-index="605" tabindex="0">
+      Feast
+     </div>
+     <div class="channel-item " data-index="606" tabindex="0">
+      Arı Maya
+     </div>
+     <div class="channel-item " data-index="607" tabindex="0">
+      Çakmaktaşlar &amp; WWE Taş Devri Smackdown
+     </div>
+     <div class="channel-item " data-index="608" tabindex="0">
+      Scooby-Doo!: Çılgın Ay Canavarı
+     </div>
+     <div class="channel-item " data-index="609" tabindex="0">
+      Madagaskar Penguenleri
+     </div>
+     <div class="channel-item " data-index="610" tabindex="0">
+      SüngerBob KarePantolon: Suyu Süngerle Sil
+     </div>
+     <div class="channel-item " data-index="611" tabindex="0">
+      Kuzular Firarda
+     </div>
+     <div class="channel-item " data-index="612" tabindex="0">
+      Hobbit
+     </div>
+     <div class="channel-item " data-index="613" tabindex="0">
+      Evim
+     </div>
+     <div class="channel-item " data-index="614" tabindex="0">
+      Tom and Jerry: Spy Quest
+     </div>
+     <div class="channel-item " data-index="615" tabindex="0">
+      Scooby-Doo!: Kiss Rock ile Roll Gizemi
+     </div>
+     <div class="channel-item " data-index="616" tabindex="0">
+      Denizin Şarkısı
+     </div>
+     <div class="channel-item " data-index="617" tabindex="0">
+      Minik Kuş
+     </div>
+     <div class="channel-item " data-index="618" tabindex="0">
+      Lego DC Comics Super Heroes: Justice League - Cosmic Clash
+     </div>
+     <div class="channel-item " data-index="619" tabindex="0">
+      Ay Macerası
+     </div>
+     <div class="channel-item " data-index="620" tabindex="0">
+      Buz Devri: Dev Yumurtayı Kaçırma
+     </div>
+     <div class="channel-item " data-index="621" tabindex="0">
+      Kahraman Miçolar
+     </div>
+     <div class="channel-item " data-index="622" tabindex="0">
+      Lego Scooby-Doo!: Haunted Hollywood
+     </div>
+     <div class="channel-item " data-index="623" tabindex="0">
+      Lego DC Comics Süper Kahramanlar: Flash
+     </div>
+     <div class="channel-item " data-index="624" tabindex="0">
+      En Süper Kahramanlar
+     </div>
+     <div class="channel-item " data-index="625" tabindex="0">
+      Troller
+     </div>
+     <div class="channel-item " data-index="626" tabindex="0">
+      Scooby-Doo!: Hız Yarışının Laneti
+     </div>
+     <div class="channel-item " data-index="627" tabindex="0">
+      Ratchet &amp; Clank
+     </div>
+     <div class="channel-item " data-index="628" tabindex="0">
+      Balerin ve Afacan Mucit
+     </div>
+     <div class="channel-item " data-index="629" tabindex="0">
+      Doraemon
+     </div>
+     <div class="channel-item " data-index="630" tabindex="0">
+      Süper Papağan Filmi
+     </div>
+     <div class="channel-item " data-index="631" tabindex="0">
+      Kubo ve Sihirli Telleri
+     </div>
+     <div class="channel-item " data-index="632" tabindex="0">
+      Kabakçığın Hayatı
+     </div>
+     <div class="channel-item " data-index="633" tabindex="0">
+      Kırmızı Kaplumbağa
+     </div>
+     <div class="channel-item " data-index="634" tabindex="0">
+      Kaptan Düşükdon: Destansı İlk Film
+     </div>
+     <div class="channel-item " data-index="635" tabindex="0">
+      Scooby-Doo!: Gurme Hayalet
+     </div>
+     <div class="channel-item " data-index="636" tabindex="0">
+      Beyaz Diş
+     </div>
+     <div class="channel-item " data-index="637" tabindex="0">
+      Goosebumps 2: Haunted Halloween
+     </div>
+     <div class="channel-item " data-index="638" tabindex="0">
+      Yakışıklı Prens
+     </div>
+     <div class="channel-item " data-index="639" tabindex="0">
+      Mary Poppins: Sihirli Dadı
+     </div>
+     <div class="channel-item " data-index="640" tabindex="0">
+      Sihirbazın Balonları
+     </div>
+     <div class="channel-item " data-index="641" tabindex="0">
+      Mirai
+     </div>
+     <div class="channel-item " data-index="642" tabindex="0">
+      Cinderella
+     </div>
+     <div class="channel-item " data-index="643" tabindex="0">
+      Mucizeler Parkı
+     </div>
+     <div class="channel-item " data-index="644" tabindex="0">
+      Minuscule 2: Les mandibules du bout du monde
+     </div>
+     <div class="channel-item " data-index="645" tabindex="0">
+      Asteriks: Sihirli İksirin Sırrı
+     </div>
+     <div class="channel-item " data-index="646" tabindex="0">
+      Kuzular Kurtlara Karşı 2
+     </div>
+     <div class="channel-item " data-index="647" tabindex="0">
+      Invader ZIM: Enter the Florpus
+     </div>
+     <div class="channel-item " data-index="648" tabindex="0">
+      Kuklali Kösk
+     </div>
+     <div class="channel-item " data-index="649" tabindex="0">
+      Beyaz Balina
+     </div>
+     <div class="channel-item " data-index="650" tabindex="0">
+      Her Şey Mümkün
+     </div>
+     <div class="channel-item " data-index="651" tabindex="0">
+      Küçük Kahramanlar
+     </div>
+     <div class="channel-item " data-index="652" tabindex="0">
+      Benim Küçük Midillim
+     </div>
+     <div class="channel-item " data-index="653" tabindex="0">
+      Küçük Ayak
+     </div>
+     <div class="channel-item " data-index="654" tabindex="0">
+      Kaptan Dandun
+     </div>
+     <div class="channel-item " data-index="655" tabindex="0">
+      Lego Filmi 2
+     </div>
+     <div class="channel-item " data-index="656" tabindex="0">
+      Sihirli Müze
+     </div>
+     <div class="channel-item " data-index="657" tabindex="0">
+      Fındık İşi 2
+     </div>
+     <div class="channel-item " data-index="658" tabindex="0">
+      Sevimli Cüceler 2: Cüce Dedektif Şerlok
+     </div>
+     <div class="channel-item " data-index="659" tabindex="0">
+      Kayıp Prenses
+     </div>
+     <div class="channel-item " data-index="660" tabindex="0">
+      Gelecek Jenerasyon
+     </div>
+     <div class="channel-item " data-index="661" tabindex="0">
+      Fearless
+     </div>
+     <div class="channel-item " data-index="662" tabindex="0">
+      Macellan: Büyük Kaşif
+     </div>
+     <div class="channel-item " data-index="663" tabindex="0">
+      Uçan Halı ve Kayıp Elmas
+     </div>
+     <div class="channel-item " data-index="664" tabindex="0">
+      Lego DC: Batman - Aile Meseleleri
+     </div>
+     <div class="channel-item " data-index="665" tabindex="0">
+      Süper Ayı
+     </div>
+     <div class="channel-item " data-index="666" tabindex="0">
+      Astronot Willy: Macera Gezegeni
+     </div>
+     <div class="channel-item " data-index="667" tabindex="0">
+      Klaus: Sihirli Plan
+     </div>
+     <div class="channel-item " data-index="668" tabindex="0">
+      One Piece: Stampede
+     </div>
+     <div class="channel-item " data-index="669" tabindex="0">
+      Willoughby Ailesi
+     </div>
+     <div class="channel-item " data-index="670" tabindex="0">
+      Salma'nın Dileği
+     </div>
+     <div class="channel-item " data-index="671" tabindex="0">
+      The Larva Island Movie
+     </div>
+     <div class="channel-item " data-index="672" tabindex="0">
+      Süper Ajanlar
+     </div>
+     <div class="channel-item " data-index="673" tabindex="0">
+      108 Rois-Démons
+     </div>
+     <div class="channel-item " data-index="674" tabindex="0">
+      Super Monsters : The New Class (#special.7)
+     </div>
+     <div class="channel-item " data-index="675" tabindex="0">
+      Ayı Kardeşler: Kurtarma Operasyonu
+     </div>
+     <div class="channel-item " data-index="676" tabindex="0">
+      Ayı Kardeşler: Büyülü Kış
+     </div>
+     <div class="channel-item " data-index="677" tabindex="0">
+      Ayı Kardeşler: Fantastik Dünyalar
+     </div>
+     <div class="channel-item " data-index="678" tabindex="0">
+      Patron Bebek: Yakala Bebeği!
+     </div>
+     <div class="channel-item " data-index="679" tabindex="0">
+      Kirpi Latte ve Büyülü Taş
+     </div>
+     <div class="channel-item " data-index="680" tabindex="0">
+      Playmobil Filmi
+     </div>
+     <div class="channel-item " data-index="681" tabindex="0">
+      Bir Köpeğin Fantastik Hikayesi
+     </div>
+     <div class="channel-item " data-index="682" tabindex="0">
+      Futbolcu Köstebek
+     </div>
+     <div class="channel-item " data-index="683" tabindex="0">
+      Bir Ay Masalı
+     </div>
+     <div class="channel-item " data-index="684" tabindex="0">
+      SüngerBob KarePantolon: Firarda
+     </div>
+     <div class="channel-item " data-index="685" tabindex="0">
+      SüngerBob KarePantolon
+     </div>
+     <div class="channel-item " data-index="686" tabindex="0">
+      Kuşlar Şehrinde Macera
+     </div>
+     <div class="channel-item " data-index="687" tabindex="0">
+      le gardien de la lune
+     </div>
+     <div class="channel-item " data-index="688" tabindex="0">
+      Ormana Misafir
+     </div>
+     <div class="channel-item " data-index="689" tabindex="0">
+      Bay Link: Kayıp Efsane
+     </div>
+     <div class="channel-item " data-index="690" tabindex="0">
+      Canavarlar Lisesi: 13 Dilek
+     </div>
+     <div class="channel-item " data-index="691" tabindex="0">
+      Ormanda Karmaşa
+     </div>
+     <div class="channel-item " data-index="692" tabindex="0">
+      Minions Holiday Special
+     </div>
+     <div class="channel-item " data-index="693" tabindex="0">
+      Kaptan Düşükdon Mega Neşeliol'lar
+     </div>
+     <div class="channel-item " data-index="694" tabindex="0">
+      Alaaddin 3: Hırsızlar Kralı
+     </div>
+     <div class="channel-item " data-index="695" tabindex="0">
+      Vikingler Efsanesi: Thor
+     </div>
+     <div class="channel-item " data-index="696" tabindex="0">
+      Özgür Balık
+     </div>
+     <div class="channel-item " data-index="697" tabindex="0">
+      Trolls Holiday
+     </div>
+     <div class="channel-item " data-index="698" tabindex="0">
+      Kafadar Ayılar: Film
+     </div>
+     <div class="channel-item " data-index="699" tabindex="0">
+      Evcil Hayvanlar Birliği
+     </div>
+     <div class="channel-item " data-index="700" tabindex="0">
+      Superman ve Batman: Halk Düşmanları
+     </div>
+     <div class="channel-item " data-index="701" tabindex="0">
+      La fameuse invasion des ours en Sicile
+     </div>
+     <div class="channel-item " data-index="702" tabindex="0">
+      G-Force
+     </div>
+     <div class="channel-item " data-index="703" tabindex="0">
+      Mosley
+     </div>
+     <div class="channel-item " data-index="704" tabindex="0">
+      Neşeli Çiftlikte Noel
+     </div>
+     <div class="channel-item " data-index="705" tabindex="0">
+      Teen Titans Go! See Space Jam
+     </div>
+     <div class="channel-item " data-index="706" tabindex="0">
+      Köfte Yağmuru
+     </div>
+     <div class="channel-item " data-index="707" tabindex="0">
+      Benim Küçük Midillim: Yeni Bir Nesil
+     </div>
+     <div class="channel-item " data-index="708" tabindex="0">
+      Sharkdog's Fintastic Halloween
+     </div>
+     <div class="channel-item " data-index="709" tabindex="0">
+      Tarih Öncesi Topraklarda 14: Cesurların Yolculuğu
+     </div>
+     <div class="channel-item " data-index="710" tabindex="0">
+      Robin Robin
+     </div>
+     <div class="channel-item " data-index="711" tabindex="0">
+      Özgür ruh
+     </div>
+     <div class="channel-item " data-index="712" tabindex="0">
+      Alpha ve Omega: Eve Dönüş Macerası
+     </div>
+     <div class="channel-item " data-index="713" tabindex="0">
+      Emicem Hospital
+     </div>
+     <div class="channel-item " data-index="714" tabindex="0">
+      Her Şey Çok Güzel Olacak
+     </div>
+     <div class="channel-item " data-index="715" tabindex="0">
+      Bionicle 4: Efsane Geri Dönüyor
+     </div>
+     <div class="channel-item " data-index="716" tabindex="0">
+      Çılgın Dostlar 3
+     </div>
+     <div class="channel-item " data-index="717" tabindex="0">
+      Bolt
+     </div>
+     <div class="channel-item " data-index="718" tabindex="0">
+      Çılgın Dostlar 2
+     </div>
+     <div class="channel-item " data-index="719" tabindex="0">
+      Happiness Is a Warm Blanket Charlie Brown
+     </div>
+     <div class="channel-item " data-index="720" tabindex="0">
+      Arabalar: Mater'in Abartılı Hikayeleri
+     </div>
+     <div class="channel-item " data-index="721" tabindex="0">
+      Despero
+     </div>
+     <div class="channel-item " data-index="722" tabindex="0">
+      Gezegen 51
+     </div>
+     <div class="channel-item " data-index="723" tabindex="0">
+      Hop
+     </div>
+     <div class="channel-item " data-index="724" tabindex="0">
+      Igor
+     </div>
+     <div class="channel-item " data-index="725" tabindex="0">
+      Noelde Tek Dileğim
+     </div>
+     <div class="channel-item " data-index="726" tabindex="0">
+      Ayı Winnie
+     </div>
+     <div class="channel-item " data-index="727" tabindex="0">
+      Küçük Deniz Kızı Ponyo
+     </div>
+     <div class="channel-item " data-index="728" tabindex="0">
+      The Littlest Angel
+     </div>
+     <div class="channel-item " data-index="729" tabindex="0">
+      Prenses ve Kurbağa
+     </div>
+     <div class="channel-item " data-index="730" tabindex="0">
+      annem ve ben
+     </div>
+     <div class="channel-item " data-index="731" tabindex="0">
+      Neşeli Ayaklar 2
+     </div>
+     <div class="channel-item " data-index="732" tabindex="0">
+      Paris'te Çılgın Macera
+     </div>
+     <div class="channel-item " data-index="733" tabindex="0">
+      Canavarlar Lisesi: Acayiplerin Korkusu
+     </div>
+     <div class="channel-item " data-index="734" tabindex="0">
+      Sevimli Hayvanlar
+     </div>
+     <div class="channel-item " data-index="735" tabindex="0">
+      Sammy'nin maceraları
+     </div>
+     <div class="channel-item " data-index="736" tabindex="0">
+      Christmas Thieves
+     </div>
+     <div class="channel-item " data-index="737" tabindex="0">
+      Tom and Jerry &amp; The Wizard of Oz
+     </div>
+     <div class="channel-item " data-index="738" tabindex="0">
+      Yıldız Kız Yılbaşı Macerası
+     </div>
+     <div class="channel-item " data-index="739" tabindex="0">
+      Yaman Tilki
+     </div>
+     <div class="channel-item " data-index="740" tabindex="0">
+      Yeni Yıl Şarkısı
+     </div>
+     <div class="channel-item " data-index="741" tabindex="0">
+      Quest for Zhu
+     </div>
+     <div class="channel-item " data-index="742" tabindex="0">
+      Bobbleheads Filmi
+     </div>
+     <div class="channel-item " data-index="743" tabindex="0">
+      Gizli Geçit Efsanesi
+     </div>
+     <div class="channel-item " data-index="744" tabindex="0">
+      Elfland - Yeni Yıl Dedektifleri
+     </div>
+     <div class="channel-item " data-index="745" tabindex="0">
+      Iron Man &amp; Hulk: Heroes United
+     </div>
+     <div class="channel-item " data-index="746" tabindex="0">
+      Ernest &amp; Celestine
+     </div>
+     <div class="channel-item " data-index="747" tabindex="0">
+      Room on the Broom
+     </div>
+     <div class="channel-item " data-index="748" tabindex="0">
+      Pişiriciler
+     </div>
+     <div class="channel-item " data-index="749" tabindex="0">
+      Ayas
+     </div>
+     <div class="channel-item " data-index="750" tabindex="0">
+      Stand by Me Doraemon 2
+     </div>
+     <div class="channel-item " data-index="751" tabindex="0">
+      Hayat Kitabı
+     </div>
+     <div class="channel-item " data-index="752" tabindex="0">
+      Hilda ve Dağ Kralı
+     </div>
+     <div class="channel-item " data-index="753" tabindex="0">
+      Babamin Ceketi
+     </div>
+     <div class="channel-item " data-index="754" tabindex="0">
+      Konusan Hayvanlar
+     </div>
+     <div class="channel-item " data-index="755" tabindex="0">
+      Bal Kaymak
+     </div>
+     <div class="channel-item " data-index="756" tabindex="0">
+      Çınar
+     </div>
+     <div class="channel-item " data-index="757" tabindex="0">
+      Gurbetçi Saban
+     </div>
+     <div class="channel-item " data-index="758" tabindex="0">
+      Görevimiz Tatil
+     </div>
+     <div class="channel-item " data-index="759" tabindex="0">
+      Looney tunes - Maceraya devam
+     </div>
+     <div class="channel-item " data-index="760" tabindex="0">
+      Return from Witch Mountain
+     </div>
+     <div class="channel-item " data-index="761" tabindex="0">
+      Maceraperest Midas Kutusunun Laneti
+     </div>
+     <div class="channel-item " data-index="762" tabindex="0">
+      About Scout
+     </div>
+     <div class="channel-item " data-index="763" tabindex="0">
+      Go! Go! Cory Carson: Summer Camp
+     </div>
+     <div class="channel-item " data-index="764" tabindex="0">
+      Kimsesiz Çocuk Remi
+     </div>
+     <div class="channel-item " data-index="765" tabindex="0">
+      Scooby-Doo!: Mutlu Cadılar Bayramı
+     </div>
+     <div class="channel-item " data-index="766" tabindex="0">
+      A Go! Go! Cory Carson Christmas
+     </div>
+     <div class="channel-item " data-index="767" tabindex="0">
+      Afacan Çöp Kamyonu: Noel Macerası
+     </div>
+     <div class="channel-item " data-index="768" tabindex="0">
+      Scooby-Doo!: Sahne Korkusu
+     </div>
+     <div class="channel-item " data-index="769" tabindex="0">
+      Scooby-Doo!: Sirk Macerası
+     </div>
+     <div class="channel-item " data-index="770" tabindex="0">
+      Kutupta Macera
+     </div>
+     <div class="channel-item " data-index="771" tabindex="0">
+      Tuhaf Bir Sihir
+     </div>
+     <div class="channel-item " data-index="772" tabindex="0">
+      Dokuz Canlı Bay Tüylü
+     </div>
+     <div class="channel-item " data-index="773" tabindex="0">
+      Can Dostum
+     </div>
+     <div class="channel-item " data-index="774" tabindex="0">
+      Büyük Kötü Tilki ve Diğer Masallar
+     </div>
+     <div class="channel-item " data-index="775" tabindex="0">
+      Dört Çocuk ve Kum Elfi
+     </div>
+     <div class="channel-item " data-index="776" tabindex="0">
+      Timsah Çocuk Arlo
+     </div>
+     <div class="channel-item " data-index="777" tabindex="0">
+      Scooby-Doo!: Kılıç ve Scoob
+     </div>
+     <div class="channel-item " data-index="778" tabindex="0">
+      Problem Çocuk 3: Junior Aşık Oldu
+     </div>
+     <div class="channel-item " data-index="779" tabindex="0">
+      Go! La Fiesta Inolvidable
+     </div>
+     <div class="channel-item " data-index="780" tabindex="0">
+      Hızlı ve Tüylü
+     </div>
+     <div class="channel-item " data-index="781" tabindex="0">
+      Adventure Force 5
+     </div>
+     <div class="channel-item " data-index="782" tabindex="0">
+      Go!
+     </div>
+     <div class="channel-item " data-index="783" tabindex="0">
+      Vahşi Dostum
+     </div>
+     <div class="channel-item " data-index="784" tabindex="0">
+      Les malheurs de Sophie
+     </div>
+     <div class="channel-item " data-index="785" tabindex="0">
+      Çılgın Çocuklar 4
+     </div>
+     <div class="channel-item " data-index="786" tabindex="0">
+      Oskar und die Tieferschatten
+     </div>
+     <div class="channel-item " data-index="787" tabindex="0">
+      Astro Boy
+     </div>
+     <div class="channel-item " data-index="788" tabindex="0">
+      Scooby-Doo!: Phantosaur Efsanesi
+     </div>
+     <div class="channel-item " data-index="789" tabindex="0">
+      Bir Buçuk Polis: Yeni Eleman
+     </div>
+     <div class="channel-item " data-index="790" tabindex="0">
+      Kahraman Çocuk
+     </div>
+     <div class="channel-item " data-index="791" tabindex="0">
+      Eve Hoşgeldin Roscoe Jenkins
+     </div>
+     <div class="channel-item " data-index="792" tabindex="0">
+      Kırmızı Başlıklı Kız 2: Kötülere Karşı
+     </div>
+     <div class="channel-item " data-index="793" tabindex="0">
+      Octonauts and the Caves of Sac Actun
+     </div>
+     <div class="channel-item " data-index="794" tabindex="0">
+      Robot Dostum ARI nın Maceraları
+     </div>
+     <div class="channel-item " data-index="795" tabindex="0">
+      Sebastian Sevgili Dostum
+     </div>
+     <div class="channel-item " data-index="796" tabindex="0">
+      Tüylü Bela
+     </div>
+     <div class="channel-item " data-index="797" tabindex="0">
+      K-9 Adventures: A Christmas Tale
+     </div>
+     <div class="channel-item " data-index="798" tabindex="0">
+      Turu ve Sirk Maceraları
+     </div>
+     <div class="channel-item " data-index="799" tabindex="0">
+      La dernière vie de Simon
+     </div>
+     <div class="channel-item " data-index="800" tabindex="0">
+      Gençlik Plajı Filmi
+     </div>
+     <div class="channel-item " data-index="801" tabindex="0">
+      Saftirik Greg'in Günlüğü: İşte Şimdi Yandık
+     </div>
+     <div class="channel-item " data-index="802" tabindex="0">
+      Ortaokul: Hayatımın En Kötü Yılları
+     </div>
+     <div class="channel-item " data-index="803" tabindex="0">
+      Treasure Hounds
+     </div>
+     <div class="channel-item " data-index="804" tabindex="0">
+      A Witches' Ball
+     </div>
+     <div class="channel-item " data-index="805" tabindex="0">
+      Louis &amp; Luca: Büyük Peynir Yarışı
+     </div>
+     <div class="channel-item " data-index="806" tabindex="0">
+      Apple of My Eye
+     </div>
+     <div class="channel-item " data-index="807" tabindex="0">
+      Boule &amp; Bill
+     </div>
+     <div class="channel-item " data-index="808" tabindex="0">
+      Teen Beach 2
+     </div>
+     <div class="channel-item " data-index="809" tabindex="0">
+      Mürekkep yürek
+     </div>
+     <div class="channel-item " data-index="810" tabindex="0">
+      Cinderella II: Dreams Come True
+     </div>
+     <div class="channel-item " data-index="811" tabindex="0">
+      Kül Kedisi Sinderella
+     </div>
+     <div class="channel-item " data-index="812" tabindex="0">
+      Kedi
+     </div>
+     <div class="channel-item " data-index="813" tabindex="0">
+      Kurbağa Prens
+     </div>
+     <div class="channel-item " data-index="814" tabindex="0">
+      Kirpi ve Saksağan: Sevimli Uzay Kahramanları
+     </div>
+     <div class="channel-item " data-index="815" tabindex="0">
+      Troll: Kuyruklu Macera
+     </div>
+     <div class="channel-item " data-index="816" tabindex="0">
+      Büyüler Evi: Sihirbaz Kedi
+     </div>
+     <div class="channel-item " data-index="817" tabindex="0">
+      Maske 2
+     </div>
+     <div class="channel-item " data-index="818" tabindex="0">
+      Kozi pribeh se syrem
+     </div>
+     <div class="channel-item " data-index="819" tabindex="0">
+      Mickey Matson'ın Serüvenleri Korsan Kodu
+     </div>
+     <div class="channel-item " data-index="820" tabindex="0">
+      Sevimli Balık Pupi
+     </div>
+     <div class="channel-item " data-index="821" tabindex="0">
+      Grinç
+     </div>
+     <div class="channel-item " data-index="822" tabindex="0">
+      Hediye Operasyonu
+     </div>
+     <div class="channel-item " data-index="823" tabindex="0">
+      Noel Günlükleri
+     </div>
+     <div class="channel-item " data-index="824" tabindex="0">
+      Gece Yarısı Çetesi
+     </div>
+     <div class="channel-item " data-index="825" tabindex="0">
+      Bir Noel Gizemi
+     </div>
+     <div class="channel-item " data-index="826" tabindex="0">
+      Dr. Dolittle
+     </div>
+     <div class="channel-item " data-index="827" tabindex="0">
+      Marnie Oradayken
+     </div>
+     <div class="channel-item " data-index="828" tabindex="0">
+      A Street Cat Named Bob
+     </div>
+     <div class="channel-item " data-index="829" tabindex="0">
+      Ağaçkakan Woody
+     </div>
+     <div class="channel-item " data-index="830" tabindex="0">
+      Bobi: Dikenlerin Gücü Adına!
+     </div>
+     <div class="channel-item " data-index="831" tabindex="0">
+      Hacker
+     </div>
+     <div class="channel-item " data-index="832" tabindex="0">
+      Kediler
+     </div>
+     <div class="channel-item " data-index="833" tabindex="0">
+      Yelkenli Adında Bir Çocuk
+     </div>
+     <div class="channel-item " data-index="834" tabindex="0">
+      Meester Kikker
+     </div>
+     <div class="channel-item " data-index="835" tabindex="0">
+      Kediler ve köpekler
+     </div>
+     <div class="channel-item " data-index="836" tabindex="0">
+      Cats &amp; Dogs 3: Paws Unite
+     </div>
+     <div class="channel-item " data-index="837" tabindex="0">
+      Kediler ve köpekler: Kitty Galore'un intikamı
+     </div>
+     <div class="channel-item " data-index="838" tabindex="0">
+      WolfWalkers
+     </div>
+     <div class="channel-item " data-index="839" tabindex="0">
+      Şeker Portakalı
+     </div>
+     <div class="channel-item " data-index="840" tabindex="0">
+      Die weiße Schlange
+     </div>
+     <div class="channel-item " data-index="841" tabindex="0">
+      Thongs and Perfect Snogging
+     </div>
+     <div class="channel-item " data-index="842" tabindex="0">
+      Bean-En büyük felaket filmi
+     </div>
+     <div class="channel-item " data-index="843" tabindex="0">
+      Monkey Up
+     </div>
+     <div class="channel-item " data-index="844" tabindex="0">
+      Go! Go! Cory Carson: Chrissy Takes the Wheel
+     </div>
+     <div class="channel-item " data-index="845" tabindex="0">
+      El lince perdido
+     </div>
+     <div class="channel-item " data-index="846" tabindex="0">
+      Floquet de Neu
+     </div>
+     <div class="channel-item " data-index="847" tabindex="0">
+      Pegasus: Kırık Kanatlı Midilli
+     </div>
+     <div class="channel-item " data-index="848" tabindex="0">
+      Bir Külkedisi Masalı: Ayakkabı Uyarsa
+     </div>
+     <div class="channel-item " data-index="849" tabindex="0">
+      Fırıldak Kedi Findus
+     </div>
+     <div class="channel-item " data-index="850" tabindex="0">
+      Frankenweenie
+     </div>
+     <div class="channel-item " data-index="851" tabindex="0">
+      Pete ve Ejderhası
+     </div>
+     <div class="channel-item " data-index="852" tabindex="0">
+      Sevimli Ejderha Kokonat: Ormanda Şenlik
+     </div>
+     <div class="channel-item " data-index="853" tabindex="0">
+      Ejderhalar: Kurtarma Ekibi - Şarkı Kanadı'nın Sırları
+     </div>
+     <div class="channel-item " data-index="854" tabindex="0">
+      Thunderstruck
+     </div>
+     <div class="channel-item " data-index="855" tabindex="0">
+      Ejderhalar: Kurtarma Ekibi - Baraka Tatili
+     </div>
+     <div class="channel-item " data-index="856" tabindex="0">
+      Spiderwick günceleri
+     </div>
+     <div class="channel-item " data-index="857" tabindex="0">
+      Undertaker: Lanetli Evden Kaçış
+     </div>
+     <div class="channel-item " data-index="858" tabindex="0">
+      Die Vampirschwestern 2
+     </div>
+     <div class="channel-item " data-index="859" tabindex="0">
+      Sune i fjällen
+     </div>
+     <div class="channel-item " data-index="860" tabindex="0">
+      Sune på bilsemester
+     </div>
+     <div class="channel-item " data-index="861" tabindex="0">
+      Winnetous Sohn
+     </div>
+     <div class="channel-item " data-index="862" tabindex="0">
+      Als der Weihnachtsmann vom Himmel fiel
+     </div>
+     <div class="channel-item " data-index="863" tabindex="0">
+      Bambi
+     </div>
+     <div class="channel-item " data-index="864" tabindex="0">
+      Bir Böceğin Yaşamı
+     </div>
+     <div class="channel-item " data-index="865" tabindex="0">
+      Çılgın Çocuklar 3: Oyun Bitti
+     </div>
+     <div class="channel-item " data-index="866" tabindex="0">
+      Büyük
+     </div>
+     <div class="channel-item " data-index="867" tabindex="0">
+      Dinozor
+     </div>
+     <div class="channel-item " data-index="868" tabindex="0">
+      Zor hedef fare
+     </div>
+     <div class="channel-item " data-index="869" tabindex="0">
+      Benim Annem Bir Dinozor
+     </div>
+     <div class="channel-item " data-index="870" tabindex="0">
+      Dinozorlarla Yürümek
+     </div>
+     <div class="channel-item " data-index="871" tabindex="0">
+      Aristokediler
+     </div>
+     <div class="channel-item " data-index="872" tabindex="0">
+      Aşk Adası
+     </div>
+     <div class="channel-item " data-index="873" tabindex="0">
+      Cheetah
+     </div>
+     <div class="channel-item " data-index="874" tabindex="0">
+      Dinosaur Island
+     </div>
+     <div class="channel-item " data-index="875" tabindex="0">
+      Scooby-Doo!: Zombi Adasına Dönüş
+     </div>
+     <div class="channel-item " data-index="876" tabindex="0">
+      Kırlangıçlar ve Amazonlar
+     </div>
+     <div class="channel-item " data-index="877" tabindex="0">
+      Babam Söz Verdi
+     </div>
+     <div class="channel-item " data-index="878" tabindex="0">
+      Bebe
+     </div>
+     <div class="channel-item " data-index="879" tabindex="0">
+      Bambi 2
+     </div>
+     <div class="channel-item " data-index="880" tabindex="0">
+      Ayı
+     </div>
+     <div class="channel-item " data-index="881" tabindex="0">
+      Buck Amca
+     </div>
+     <div class="channel-item " data-index="882" tabindex="0">
+      Çılgın cuma
+     </div>
+     <div class="channel-item " data-index="883" tabindex="0">
+      Eyvah! Çocuklar Küçüldü
+     </div>
+     <div class="channel-item " data-index="884" tabindex="0">
+      Bebek Firarda
+     </div>
+     <div class="channel-item " data-index="885" tabindex="0">
+      Strawberry Shortcake and the Beast of Berry Bog
+     </div>
+     <div class="channel-item " data-index="886" tabindex="0">
+      Batman: Hayvan İçgüdüsü
+     </div>
+     <div class="channel-item " data-index="887" tabindex="0">
+      Batman: Canavarlar'a Karşı
+     </div>
+     <div class="channel-item " data-index="888" tabindex="0">
+      Superman/Batman: Apocalypse
+     </div>
+     <div class="channel-item " data-index="889" tabindex="0">
+      Cesur ve Obur
+     </div>
+     <div class="channel-item " data-index="890" tabindex="0">
+      Batman: Ninja Kaplumbağalar
+     </div>
+     <div class="channel-item " data-index="891" tabindex="0">
+      Denizden Gelen Kız
+     </div>
+     <div class="channel-item " data-index="892" tabindex="0">
+      RV
+     </div>
+     <div class="channel-item " data-index="893" tabindex="0">
+      Bay Şeşibeş
+     </div>
+     <div class="channel-item " data-index="894" tabindex="0">
+      Çılgın Çocuklar
+     </div>
+     <div class="channel-item " data-index="895" tabindex="0">
+      Leo Da Vinci: Mona Lisa Macerası
+     </div>
+     <div class="channel-item " data-index="896" tabindex="0">
+      Ghadi
+     </div>
+     <div class="channel-item " data-index="897" tabindex="0">
+      Kül Kedisi 3: Zamanda Büyülü Yolculuk
+     </div>
+     <div class="channel-item " data-index="898" tabindex="0">
+      Zathura: Bir Uzay Macerası
+     </div>
+     <div class="channel-item " data-index="899" tabindex="0">
+      Uzaylı Arkadaşım
+     </div>
+     <div class="channel-item " data-index="900" tabindex="0">
+      Evimde Uzaylı Var
+     </div>
+     <div class="channel-item " data-index="901" tabindex="0">
+      Kahraman Uzaylılar
+     </div>
+     <div class="channel-item " data-index="902" tabindex="0">
+      Zipi y Zape y el club de la canica
+     </div>
+     <div class="channel-item " data-index="903" tabindex="0">
+      Zamanda Yolculuk
+     </div>
+     <div class="channel-item " data-index="904" tabindex="0">
+      Adalet Birliği: Zaman Tuzağında
+     </div>
+     <div class="channel-item " data-index="905" tabindex="0">
+      Bay Peabody ve Meraklı Sherman: Zamanda Yolculuk
+     </div>
+     <div class="channel-item " data-index="906" tabindex="0">
+      Lego DC Comics Super Heroes: Justice League vs. Bizarro League
+     </div>
+     <div class="channel-item " data-index="907" tabindex="0">
+      Spark: Bir Uzay Macerası
+     </div>
+     <div class="channel-item " data-index="908" tabindex="0">
+      Allein gegen die Zeit - Der Film
+     </div>
+     <div class="channel-item " data-index="909" tabindex="0">
+      Luis ve Uzaylı Dostları
+     </div>
+     <div class="channel-item " data-index="910" tabindex="0">
+      Zamanda Kıvrılma
+     </div>
+     <div class="channel-item " data-index="911" tabindex="0">
+      Ayı Kardeşler: Zamanda Yolculuk
+     </div>
+     <div class="channel-item " data-index="912" tabindex="0">
+      Kuzular Firarda: Uzay Parkı
+     </div>
+     <div class="channel-item " data-index="913" tabindex="0">
+      Uzaylılar Vücudumu Çaldı
+     </div>
+     <div class="channel-item " data-index="914" tabindex="0">
+      Anastasia: Evvel Zaman İçinde
+     </div>
+     <div class="channel-item " data-index="915" tabindex="0">
+      Alice Harikalar Diyarında
+     </div>
+     <div class="channel-item " data-index="916" tabindex="0">
+      Tanrılar Ayının Çocuğu
+     </div>
+     <div class="channel-item " data-index="917" tabindex="0">
+      İlk Kar
+     </div>
+     <div class="channel-item " data-index="918" tabindex="0">
+      Pistachio
+     </div>
+     <div class="channel-item " data-index="919" tabindex="0">
+      Bitirim Karınca
+     </div>
+     <div class="channel-item " data-index="920" tabindex="0">
+      Çılgın Çocuklar 2
+     </div>
+     <div class="channel-item " data-index="921" tabindex="0">
+      Ayı Kardeş 2
+     </div>
+     <div class="channel-item " data-index="922" tabindex="0">
+      Ayı Kardeş
+     </div>
+     <div class="channel-item " data-index="923" tabindex="0">
+      Christmas Wedding Planner
+     </div>
+     <div class="channel-item " data-index="924" tabindex="0">
+      Kirpi ve Saksağan: Kar Makinesi
+     </div>
+     <div class="channel-item " data-index="925" tabindex="0">
+      Amerikan Rapsodi
+     </div>
+     <div class="channel-item " data-index="926" tabindex="0">
+      Büyükbaba'nın Müthiş Firarı
+     </div>
+     <div class="channel-item " data-index="927" tabindex="0">
+      Beethoven's 5th
+     </div>
+     <div class="channel-item " data-index="928" tabindex="0">
+      Anastasia
+     </div>
+     <div class="channel-item " data-index="929" tabindex="0">
+      Arzın Merkezine Seyahat
+     </div>
+     <div class="channel-item " data-index="930" tabindex="0">
+      Beethoven 2
+     </div>
+     <div class="channel-item " data-index="931" tabindex="0">
+      Esrarlı Malikâne
+     </div>
+     <div class="channel-item " data-index="932" tabindex="0">
+      Aslan Kral 2: Simba'nın Onuru
+     </div>
+     <div class="channel-item " data-index="933" tabindex="0">
+      Batman: Joker'in Dönüşü
+     </div>
+     <div class="channel-item " data-index="934" tabindex="0">
+      Aslan Kral 3: Hakuna Matata
+     </div>
+     <div class="channel-item " data-index="935" tabindex="0">
+      Beethoven
+     </div>
+     <div class="channel-item " data-index="936" tabindex="0">
+      Acemi prenses 2: Kraliyet nişanı
+     </div>
+     <div class="channel-item " data-index="937" tabindex="0">
+      Afacanlar ormanda
+     </div>
+     <div class="channel-item " data-index="938" tabindex="0">
+      Beethoven's 3rd
+     </div>
+     <div class="channel-item " data-index="939" tabindex="0">
+      Atlantis 2: Milo'nun Dönüşü
+     </div>
+     <div class="channel-item " data-index="940" tabindex="0">
+      Bizi Ayıran Nehir
+     </div>
+     <div class="channel-item " data-index="941" tabindex="0">
+      The Swan Princess: A Royal Wedding
+     </div>
+     <div class="channel-item " data-index="942" tabindex="0">
+      Sinbad: Yedi Denizler Efsanesi
+     </div>
+     <div class="channel-item " data-index="943" tabindex="0">
+      Tilki ve Avcı Köpeği
+     </div>
+     <div class="channel-item " data-index="944" tabindex="0">
+      Canavarlar Lisesi: Cadılar Bayramı
+     </div>
+     <div class="channel-item " data-index="945" tabindex="0">
+      The Fox and the Hound 2
+     </div>
+     <div class="channel-item " data-index="946" tabindex="0">
+      Hazine Avcısının Maceraları
+     </div>
+     <div class="channel-item " data-index="947" tabindex="0">
+      Oorlogsgeheimen
+     </div>
+     <div class="channel-item " data-index="948" tabindex="0">
+      Miracles from Heaven
+     </div>
+     <div class="channel-item " data-index="949" tabindex="0">
+      Kartopu Savaşları
+     </div>
+     <div class="channel-item " data-index="950" tabindex="0">
+      Hazine Avcısının Maceraları 2
+     </div>
+     <div class="channel-item " data-index="951" tabindex="0">
+      Tavşan Peter
+     </div>
+     <div class="channel-item " data-index="952" tabindex="0">
+      Ejderhalar: Kurtarma Ekibi - Altın Ejderhayı Avı
+     </div>
+     <div class="channel-item " data-index="953" tabindex="0">
+      Kartopu Savaşları 2
+     </div>
+     <div class="channel-item " data-index="954" tabindex="0">
+      Scooby-Doo!: Mavi Şahinin Maskesi
+     </div>
+     <div class="channel-item " data-index="955" tabindex="0">
+      Savannah
+     </div>
+     <div class="channel-item " data-index="956" tabindex="0">
+      Bruno &amp; Boots: Go Jump in the Pool
+     </div>
+     <div class="channel-item " data-index="957" tabindex="0">
+      Little Savages
+     </div>
+     <div class="channel-item " data-index="958" tabindex="0">
+      Raffi
+     </div>
+     <div class="channel-item " data-index="959" tabindex="0">
+      Sakar Polis
+     </div>
+     <div class="channel-item " data-index="960" tabindex="0">
+      Beverly Hills Çuvava
+     </div>
+     <div class="channel-item " data-index="961" tabindex="0">
+      David ve Elfler
+     </div>
+     <div class="channel-item " data-index="962" tabindex="0">
+      Düğmeler Savaşı
+     </div>
+     <div class="channel-item " data-index="963" tabindex="0">
+      Arthur 3: İki Dünyanın Savaşı
+     </div>
+     <div class="channel-item " data-index="964" tabindex="0">
+      Noel'i Kurtarmak
+     </div>
+     <div class="channel-item " data-index="965" tabindex="0">
+      Nakavt
+     </div>
+     <div class="channel-item " data-index="966" tabindex="0">
+      Hevisaurus-elokuva
+     </div>
+     <div class="channel-item " data-index="967" tabindex="0">
+      Dartanyan ve Üç Havhavlar
+     </div>
+     <div class="channel-item " data-index="968" tabindex="0">
+      Tavşan Okulu
+     </div>
+     <div class="channel-item " data-index="969" tabindex="0">
+      Define Avcıları
+     </div>
+     <div class="channel-item " data-index="970" tabindex="0">
+      Altın postlu cengâver
+     </div>
+     <div class="channel-item " data-index="971" tabindex="0">
+      Tavuklar firarda
+     </div>
+     <div class="channel-item " data-index="972" tabindex="0">
+      Mighty Express: Train Trouble
+     </div>
+     <div class="channel-item " data-index="973" tabindex="0">
+      Max
+     </div>
+     <div class="channel-item " data-index="974" tabindex="0">
+      Loraks
+     </div>
+     <div class="channel-item " data-index="975" tabindex="0">
+      Çok Kötü Bir Gün
+     </div>
+     <div class="channel-item " data-index="976" tabindex="0">
+      E.T.
+     </div>
+     <div class="channel-item " data-index="977" tabindex="0">
+      A-X-L
+     </div>
+     <div class="channel-item " data-index="978" tabindex="0">
+      Tüysüz'ün Yolculuğu
+     </div>
+     <div class="channel-item " data-index="979" tabindex="0">
+      Küçük Uzaylı X
+     </div>
+     <div class="channel-item " data-index="980" tabindex="0">
+      Max 2: Beyaz Saray Kahramanı
+     </div>
+     <div class="channel-item " data-index="981" tabindex="0">
+      Winx Club: Sihirli macera
+     </div>
+     <div class="channel-item " data-index="982" tabindex="0">
+      101 Dalmaçyalı 2: Patch'in Londra Macerası
+     </div>
+     <div class="channel-item " data-index="983" tabindex="0">
+      Lamya'nın Şiiri
+     </div>
+     <div class="channel-item " data-index="984" tabindex="0">
+      Bay Mükemmel
+     </div>
+     <div class="channel-item " data-index="985" tabindex="0">
+      Flukten over grensen
+     </div>
+     <div class="channel-item " data-index="986" tabindex="0">
+      Lego DC Comics Süper Kahramanlar: Aquaman-Atlantis'in Öfkesi
+     </div>
+     <div class="channel-item " data-index="987" tabindex="0">
+      Atlantis: Kayıp İmparatorluk
+     </div>
+     <div class="channel-item " data-index="988" tabindex="0">
+      Acemi prenses
+     </div>
+     <div class="channel-item " data-index="989" tabindex="0">
+      Çılgın Dostlar
+     </div>
+     <div class="channel-item " data-index="990" tabindex="0">
+      Gråtass redder gården
+     </div>
+     <div class="channel-item " data-index="991" tabindex="0">
+      Dalgın profesör
+     </div>
+     <div class="channel-item " data-index="992" tabindex="0">
+      Taş Devri
+     </div>
+     <div class="channel-item " data-index="993" tabindex="0">
+      K-9 Adventures: Legend of the Lost Gold
+     </div>
+     <div class="channel-item " data-index="994" tabindex="0">
+      Asteriks ve Oburiks Sezar'a Karşı
+     </div>
+     <div class="channel-item " data-index="995" tabindex="0">
+      The Legend of Sarila
+     </div>
+     <div class="channel-item " data-index="996" tabindex="0">
+      Clara und das Geheimnis der Bären
+     </div>
+     <div class="channel-item " data-index="997" tabindex="0">
+      Cesur Civciv
+     </div>
+     <div class="channel-item " data-index="998" tabindex="0">
+      Antboy 3
+     </div>
+     <div class="channel-item " data-index="999" tabindex="0">
+      Cesur Araba
+     </div>
+     <div class="channel-item " data-index="1000" tabindex="0">
+      Kahraman Maymun
+     </div>
+     <div class="channel-item " data-index="1001" tabindex="0">
+      Adventures of Rufus: The Fantastic Pet
+     </div>
+     <div class="channel-item " data-index="1002" tabindex="0">
+      Masallar Diyarı
+     </div>
+     <div class="channel-item " data-index="1003" tabindex="0">
+      Tatlı Kızlar
+     </div>
+     <div class="channel-item " data-index="1004" tabindex="0">
+      Cesur Balık 2
+     </div>
+     <div class="channel-item " data-index="1005" tabindex="0">
+      Fünf Freunde
+     </div>
+     <div class="channel-item " data-index="1006" tabindex="0">
+      Willy Wonka ve Çikolata Fabrikası
+     </div>
+     <div class="channel-item " data-index="1007" tabindex="0">
+      Beverly Hills Chihuahua 2
+     </div>
+     <div class="channel-item " data-index="1008" tabindex="0">
+      Aksiyon Takımı Noel Görevinde
+     </div>
+     <div class="channel-item " data-index="1009" tabindex="0">
+      Snoopy Presents: One-of-a-Kind Marcie
+     </div>
+     <div class="channel-item " data-index="1010" tabindex="0">
+      Bugün Eski Günlerden Konuşacağız
+     </div>
+     <div class="channel-item " data-index="1011" tabindex="0">
+      Taz: Quest for Burger
+     </div>
+     <div class="channel-item " data-index="1012" tabindex="0">
+      Çocuk ve Canavar
+     </div>
+     <div class="channel-item " data-index="1013" tabindex="0">
+      Monster Island
+     </div>
+     <div class="channel-item " data-index="1014" tabindex="0">
+      Mutlu Canavar Ailesi
+     </div>
+     <div class="channel-item " data-index="1015" tabindex="0">
+      Lego DC: Shazam - Sihir &amp; Canavarlar
+     </div>
+     <div class="channel-item " data-index="1016" tabindex="0">
+      Canavar Ev
+     </div>
+     <div class="channel-item " data-index="1017" tabindex="0">
+      Tinker Bell ve Korsan Peri
+     </div>
+     <div class="channel-item " data-index="1018" tabindex="0">
+      Tinker Bell ve Canavar Efsanesi
+     </div>
+     <div class="channel-item " data-index="1019" tabindex="0">
+      Tinker Bell: Gizemli Kanatlar
+     </div>
+     <div class="channel-item " data-index="1020" tabindex="0">
+      Tinker Bell and the Lost Treasure
+     </div>
+     <div class="channel-item " data-index="1021" tabindex="0">
+      Tinker Bell ve peri kurtaran
+     </div>
+     <div class="channel-item " data-index="1022" tabindex="0">
+      Tinker Bell
+     </div>
+     <div class="channel-item " data-index="1023" tabindex="0">
+      Kaykaycı Kız
+     </div>
+     <div class="channel-item " data-index="1024" tabindex="0">
+      Sevimli Canavarlar
+     </div>
+     <div class="channel-item " data-index="1025" tabindex="0">
+      Space Jam
+     </div>
+     <div class="channel-item " data-index="1026" tabindex="0">
+      Büyük Hayaller
+     </div>
+     <div class="channel-item " data-index="1027" tabindex="0">
+      Şirinler: Kayıp Köy
+     </div>
+     <div class="channel-item " data-index="1028" tabindex="0">
+      Scooby-Doo!: Korkak Köpek Cesaretle Buluşuyor
+     </div>
+     <div class="channel-item " data-index="1029" tabindex="0">
+      Efsane Beşli
+     </div>
+     <div class="channel-item " data-index="1030" tabindex="0">
+      Lego Ninjago Filmi
+     </div>
+     <div class="channel-item " data-index="1031" tabindex="0">
+      Tom and Jerry: Snowman's Land
+     </div>
+     <div class="channel-item " data-index="1032" tabindex="0">
+      En Korkunç Masal
+     </div>
+     <div class="channel-item " data-index="1033" tabindex="0">
+      Antboy
+     </div>
+     <div class="channel-item " data-index="1034" tabindex="0">
+      Notre Dame'ın Kamburu 2: Çanın Sırrı
+     </div>
+     <div class="channel-item " data-index="1035" tabindex="0">
+      Carl'ın Randevusu
+     </div>
+     <div class="channel-item " data-index="1036" tabindex="0">
+      Kahraman Köpek Jock
+     </div>
+     <div class="channel-item " data-index="1037" tabindex="0">
+      Noel Gecesi Kabusu
+     </div>
+     <div class="channel-item " data-index="1038" tabindex="0">
+      Neşeli dalgalar
+     </div>
+     <div class="channel-item " data-index="1039" tabindex="0">
+      Notre Dame'ın kamburu
+     </div>
+     <div class="channel-item " data-index="1040" tabindex="0">
+      Peter Pan 2: Varolmayan Ülkede
+     </div>
+     <div class="channel-item " data-index="1041" tabindex="0">
+      Pocahontas 2: Yeni Bir Dünyaya Yolculuk
+     </div>
+     <div class="channel-item " data-index="1042" tabindex="0">
+      Pembe panter
+     </div>
+     <div class="channel-item " data-index="1043" tabindex="0">
+      Richie Rich
+     </div>
+     <div class="channel-item " data-index="1044" tabindex="0">
+      Problem Çocuk 2
+     </div>
+     <div class="channel-item " data-index="1045" tabindex="0">
+      Bekle Bizi Vahşi Doğa!
+     </div>
+     <div class="channel-item " data-index="1046" tabindex="0">
+      Troller Dünya Turu
+     </div>
+     <div class="channel-item " data-index="1047" tabindex="0">
+      Rio
+     </div>
+     <div class="channel-item " data-index="1048" tabindex="0">
+      Aman Tanrım 2
+     </div>
+     <div class="channel-item " data-index="1049" tabindex="0">
+      Kayıp Balık Dori
+     </div>
+     <div class="channel-item " data-index="1050" tabindex="0">
+      Against the Wild
+     </div>
+     <div class="channel-item " data-index="1051" tabindex="0">
+      Sevimli Canavarlar Üniversitesi
+     </div>
+     <div class="channel-item " data-index="1052" tabindex="0">
+      The BFG
+     </div>
+     <div class="channel-item " data-index="1053" tabindex="0">
+      Dostumun Yolculuğu
+     </div>
+     <div class="channel-item " data-index="1054" tabindex="0">
+      Dev Avcısı Jack
+     </div>
+     <div class="channel-item " data-index="1055" tabindex="0">
+      Karateci Çocuk
+     </div>
+     <div class="channel-item " data-index="1056" tabindex="0">
+      Sindirella
+     </div>
+     <div class="channel-item " data-index="1057" tabindex="0">
+      Hachi: Bir Köpeğin Hikâyesi
+     </div>
+     <div class="channel-item " data-index="1058" tabindex="0">
+      Addams Ailesi 2
+     </div>
+     <div class="channel-item " data-index="1059" tabindex="0">
+      Scooby-Doo: Yeni bir evren
+     </div>
+     <div class="channel-item " data-index="1060" tabindex="0">
+      Bebek Bakıcısının Canavar Avlama Rehberi
+     </div>
+     <div class="channel-item " data-index="1061" tabindex="0">
+      Enzo: Yagmurda Yaris Sanati
+     </div>
+     <div class="channel-item " data-index="1062" tabindex="0">
+      Madagaskar 3: Avrupa'nın En Çok Arananları
+     </div>
+     <div class="channel-item " data-index="1063" tabindex="0">
+      Kızgın Kuşlar 2
+     </div>
+     <div class="channel-item " data-index="1064" tabindex="0">
+      Küçük Prens
+     </div>
+     <div class="channel-item " data-index="1065" tabindex="0">
+      Madagaskar 2
+     </div>
+     <div class="channel-item " data-index="1066" tabindex="0">
+      Komik tuzak
+     </div>
+     <div class="channel-item " data-index="1067" tabindex="0">
+      Asteriks ve Oburiks: Görevimiz Kleopatra
+     </div>
+     <div class="channel-item " data-index="1068" tabindex="0">
+      Dünyanın En İyisi
+     </div>
+     <div class="channel-item " data-index="1069" tabindex="0">
+      Muhteşem Kedi Maurice
+     </div>
+     <div class="channel-item " data-index="1070" tabindex="0">
+      Aslan Kral
+     </div>
+     <div class="channel-item " data-index="1071" tabindex="0">
+      Ekim Düşü
+     </div>
+     <div class="channel-item " data-index="1072" tabindex="0">
+      Arı Maya 3: Altın Küre
+     </div>
+     <div class="channel-item " data-index="1073" tabindex="0">
+      Arı Filmi
+     </div>
+     <div class="channel-item " data-index="1074" tabindex="0">
+      Define Gezegeni
+     </div>
+     <div class="channel-item " data-index="1075" tabindex="0">
+      Bay Araba ve Tapınak Şövalyeleri
+     </div>
+     <div class="channel-item " data-index="1076" tabindex="0">
+      Ejderham ve Ben
+     </div>
+     <div class="channel-item " data-index="1077" tabindex="0">
+      Nimona
+     </div>
+     <div class="channel-item " data-index="1078" tabindex="0">
+      Riverdance: Animasyon Macera
+     </div>
+     <div class="channel-item " data-index="1079" tabindex="0">
+      Rango
+     </div>
+     <div class="channel-item " data-index="1080" tabindex="0">
+      Emoji Filmi
+     </div>
+     <div class="channel-item " data-index="1081" tabindex="0">
+      Mighty Morphin Power Rangers: Once &amp; Always
+     </div>
+     <div class="channel-item " data-index="1082" tabindex="0">
+      Turbo
+     </div>
+     <div class="channel-item " data-index="1083" tabindex="0">
+      Asi Prenses
+     </div>
+     <div class="channel-item " data-index="1084" tabindex="0">
+      Casusum
+     </div>
+     <div class="channel-item " data-index="1085" tabindex="0">
+      Vicky'nin Gizemli Dostu
+     </div>
+     <div class="channel-item " data-index="1086" tabindex="0">
+      Peter Pan &amp; Wendy
+     </div>
+     <div class="channel-item " data-index="1087" tabindex="0">
+      Patron Bebek
+     </div>
+     <div class="channel-item " data-index="1088" tabindex="0">
+      PAW Patrol Filmi
+     </div>
+     <div class="channel-item " data-index="1089" tabindex="0">
+      Düşler Fabrikası
+     </div>
+     <div class="channel-item " data-index="1090" tabindex="0">
+      Yeti Efsanesi
+     </div>
+     <div class="channel-item " data-index="1091" tabindex="0">
+      Ejderhanı Nasıl Eğitirsin: Eve Dönüş
+     </div>
+     <div class="channel-item " data-index="1092" tabindex="0">
+      Vivo
+     </div>
+     <div class="channel-item " data-index="1093" tabindex="0">
+      Nikolas
+     </div>
+     <div class="channel-item " data-index="1094" tabindex="0">
+      Peter Rabbit: Kaçak Tavşan
+     </div>
+     <div class="channel-item " data-index="1095" tabindex="0">
+      Ferdinand
+     </div>
+     <div class="channel-item " data-index="1096" tabindex="0">
+      Ninja Kaplumbağalar: Gölgelerin İçinden
+     </div>
+     <div class="channel-item " data-index="1097" tabindex="0">
+      Evcil Hayvanların Gizli Yaşamı
+     </div>
+     <div class="channel-item " data-index="1098" tabindex="0">
+      Oyunbozan Ralph
+     </div>
+     <div class="channel-item " data-index="1099" tabindex="0">
+      Tom ve Jerry: Film
+     </div>
+     <div class="channel-item " data-index="1100" tabindex="0">
+      Evcil Hayvanların Gizli Yaşamı 2
+     </div>
+     <div class="channel-item " data-index="1101" tabindex="0">
+      Trol Avcıları: Titanlar Yükseliyor
+     </div>
+     <div class="channel-item " data-index="1102" tabindex="0">
+      Tre nøtter til Askepott
+     </div>
+     <div class="channel-item " data-index="1103" tabindex="0">
+      Madagaskar
+     </div>
+     <div class="channel-item " data-index="1104" tabindex="0">
+      Orman Çocuğu
+     </div>
+     <div class="channel-item " data-index="1105" tabindex="0">
+      Alaaddin
+     </div>
+     <div class="channel-item " data-index="1106" tabindex="0">
+      Megazeka
+     </div>
+     <div class="channel-item " data-index="1107" tabindex="0">
+      Otel Transilvanya
+     </div>
+     <div class="channel-item " data-index="1108" tabindex="0">
+      Alice Harikalar Diyarında: Aynanın İçinden
+     </div>
+     <div class="channel-item " data-index="1109" tabindex="0">
+      Cadılar
+     </div>
+     <div class="channel-item " data-index="1110" tabindex="0">
+      Ajanlar İş Başında
+     </div>
+     <div class="channel-item " data-index="1111" tabindex="0">
+      Cesur
+     </div>
+     <div class="channel-item " data-index="1112" tabindex="0">
+      Narnia Günlükleri: Şafak Yıldızı'nın Yolculuğu
+     </div>
+     <div class="channel-item " data-index="1113" tabindex="0">
+      Ruhların Kaçışı
+     </div>
+     <div class="channel-item " data-index="1114" tabindex="0">
+      Moana
+     </div>
+     <div class="channel-item " data-index="1115" tabindex="0">
+      Togo
+     </div>
+     <div class="channel-item " data-index="1116" tabindex="0">
+      Space Jam 2: Yeni Efsane
+     </div>
+     <div class="channel-item " data-index="1117" tabindex="0">
+      Kırmızı Pabuçlar ve Yedi Cüceler
+     </div>
+     <div class="channel-item " data-index="1118" tabindex="0">
+      Tayna pechati drakona
+     </div>
+     <div class="channel-item " data-index="1119" tabindex="0">
+      Hababam Sınıfı Yaz Oyunları
+     </div>
+     <div class="channel-item " data-index="1120" tabindex="0">
+      Pinokyo
+     </div>
+     <div class="channel-item " data-index="1121" tabindex="0">
+      İyi Bir Dinozor
+     </div>
+     <div class="channel-item " data-index="1122" tabindex="0">
+      Otel Transilvanya 2
+     </div>
+     <div class="channel-item " data-index="1123" tabindex="0">
+      Şarkını Söyle
+     </div>
+     <div class="channel-item " data-index="1124" tabindex="0">
+      Spirit: Özgür Ruh
+     </div>
+     <div class="channel-item " data-index="1125" tabindex="0">
+      Yukarı Bak
+     </div>
+     <div class="channel-item " data-index="1126" tabindex="0">
+      Crood'lar
+     </div>
+     <div class="channel-item " data-index="1127" tabindex="0">
+      Dora ve Kayıp Altın Şehri
+     </div>
+     <div class="channel-item " data-index="1128" tabindex="0">
+      Canavarlar Ligi
+     </div>
+     <div class="channel-item " data-index="1129" tabindex="0">
+      Kayıp Balık Nemo
+     </div>
+     <div class="channel-item " data-index="1130" tabindex="0">
+      İnanılmaz Aile 2
+     </div>
+     <div class="channel-item " data-index="1131" tabindex="0">
+      Hadi Gidelim
+     </div>
+     <div class="channel-item " data-index="1132" tabindex="0">
+      Çılgın Hırsız 2
+     </div>
+     <div class="channel-item " data-index="1133" tabindex="0">
+      Terabithia Köprüsü
+     </div>
+     <div class="channel-item " data-index="1134" tabindex="0">
+      Otel Transilvanya 3: Yaz Tatili
+     </div>
+     <div class="channel-item " data-index="1135" tabindex="0">
+      Sihirli Ejder
+     </div>
+     <div class="channel-item " data-index="1136" tabindex="0">
+      Eragon
+     </div>
+     <div class="channel-item " data-index="1137" tabindex="0">
+      Fantastik Canavarlar: Grindelwald'in Suçları
+     </div>
+     <div class="channel-item " data-index="1138" tabindex="0">
+      Güzel ve Çirkin
+     </div>
+     <div class="channel-item " data-index="1139" tabindex="0">
+      Yarının Dünyası
+     </div>
+     <div class="channel-item " data-index="1140" tabindex="0">
+      Çılgın Hırsız 3
+     </div>
+     <div class="channel-item " data-index="1141" tabindex="0">
+      6 Süper Kahraman
+     </div>
+     <div class="channel-item " data-index="1142" tabindex="0">
+      Cadı ve Dolap
+     </div>
+     <div class="channel-item " data-index="1143" tabindex="0">
+      Dolittle
+     </div>
+     <div class="channel-item " data-index="1144" tabindex="0">
+      Çılgın Hırsız
+     </div>
+     <div class="channel-item " data-index="1145" tabindex="0">
+      Dangal
+     </div>
+     <div class="channel-item " data-index="1146" tabindex="0">
+      Matilda
+     </div>
+     <div class="channel-item " data-index="1147" tabindex="0">
+      Soul
+     </div>
+     <div class="channel-item " data-index="1148" tabindex="0">
+      Kırmızı
+     </div>
+     <div class="channel-item " data-index="1149" tabindex="0">
+      Patron Bebek 2: Aile Şirketi
+     </div>
+     <div class="channel-item " data-index="1150" tabindex="0">
+      Asteriks ve Oburiks: Orta Krallık
+     </div>
+     <div class="channel-item " data-index="1151" tabindex="0">
+      Raya ve Son Ejderha
+     </div>
+     <div class="channel-item " data-index="1152" tabindex="0">
+      Luka
+     </div>
+     <div class="channel-item " data-index="1153" tabindex="0">
+      Vahşetin Çağrısı
+     </div>
+     <div class="channel-item " data-index="1154" tabindex="0">
+      Çizmeli Kedi
+     </div>
+     <div class="channel-item " data-index="1155" tabindex="0">
+      Malefiz 2: Kötülüğün Gücü
+     </div>
+     <div class="channel-item " data-index="1156" tabindex="0">
+      Malefiz
+     </div>
+     <div class="channel-item " data-index="1157" tabindex="0">
+      VOL·i
+     </div>
+     <div class="channel-item " data-index="1158" tabindex="0">
+      Kung Fu Panda: Parşömenin Sırları
+     </div>
+     <div class="channel-item " data-index="1159" tabindex="0">
+      Kung Fu Panda 3
+     </div>
+     <div class="channel-item " data-index="1160" tabindex="0">
+      Kung Fu Panda 2
+     </div>
+     <div class="channel-item " data-index="1161" tabindex="0">
+      Kung Fu Panda
+     </div>
+     <div class="channel-item " data-index="1162" tabindex="0">
+      Ters Yüz
+     </div>
+     <div class="channel-item " data-index="1163" tabindex="0">
+      Otel Transilvanya 4: Transformanya
+     </div>
+     <div class="channel-item " data-index="1164" tabindex="0">
+      Ratatuy
+     </div>
+     <div class="channel-item " data-index="1165" tabindex="0">
+      Şarkını Söyle 2
+     </div>
+     <div class="channel-item " data-index="1166" tabindex="0">
+      Crood'lar 2: Yeni Bir Çağ
+     </div>
+     <div class="channel-item " data-index="1167" tabindex="0">
+      Kutu Cüceleri: Yaratıklar Aramızda
+     </div>
+     <div class="channel-item " data-index="1168" tabindex="0">
+      Canavarlar Yaratıklara Karşı
+     </div>
+     <div class="channel-item " data-index="1169" tabindex="0">
+      Çizmeli Kedi: Son Dilek
+     </div>
+     <div class="channel-item " data-index="1170" tabindex="0">
+      Lino: Uma Aventura de Sete Vidas
+     </div>
+     <div class="channel-item " data-index="1171" tabindex="0">
+      Aşırıcılar
+     </div>
+     <div class="channel-item " data-index="1172" tabindex="0">
+      Arkadaşım Canavar
+     </div>
+     <div class="channel-item " data-index="1173" tabindex="0">
+      Arkadaşım tilki
+     </div>
+     <div class="channel-item " data-index="1174" tabindex="0">
+      St. Trinian's
+     </div>
+     <div class="channel-item " data-index="1175" tabindex="0">
+      Oyuncak Hikayesi 4
+     </div>
+     <div class="channel-item " data-index="1176" tabindex="0">
+      Oyuncak Hikayesi: Gizemli Otel!
+     </div>
+     <div class="channel-item " data-index="1177" tabindex="0">
+      Oyuncak Hikayesi
+     </div>
+     <div class="channel-item " data-index="1178" tabindex="0">
+      Oyuncak Hikayesi 2
+     </div>
+     <div class="channel-item " data-index="1179" tabindex="0">
+      Oyuncak Hikayesi 3
+     </div>
+     <div class="channel-item " data-index="1180" tabindex="0">
+      Benim Tatlı Diş Perim
+     </div>
+     <div class="channel-item " data-index="1181" tabindex="0">
+      Hayalet Avcıları
+     </div>
+     <div class="channel-item " data-index="1182" tabindex="0">
+      Pokemon: Birlikten Kuvvet Doğar
+     </div>
+     <div class="channel-item " data-index="1183" tabindex="0">
+      Pokemon: Mewtwo İntikam Peşinde - Evrim
+     </div>
+     <div class="channel-item " data-index="1184" tabindex="0">
+      Pokemon: Ormanın Sırları
+     </div>
+     <div class="channel-item " data-index="1185" tabindex="0">
+      Pokemon: Kyurem Adalet Kılıcına Karşı
+     </div>
+     <div class="channel-item " data-index="1186" tabindex="0">
+      Pokemon: Diancie ve Yıkım Kozası
+     </div>
+     <div class="channel-item " data-index="1187" tabindex="0">
+      Pokemon: Hoopa ve Çağlar Çatışması
+     </div>
+     <div class="channel-item " data-index="1188" tabindex="0">
+      Alvin ve Sincaplar 4: Yol Macerası
+     </div>
+     <div class="channel-item " data-index="1189" tabindex="0">
+      Alvin ve Sincaplar 2
+     </div>
+     <div class="channel-item " data-index="1190" tabindex="0">
+      Alvin ve Sincaplar 3: Eğlence Adası
+     </div>
+     <div class="channel-item " data-index="1191" tabindex="0">
+      Alvin ve Sincaplar
+     </div>
+     <div class="channel-item " data-index="1192" tabindex="0">
+      Karlar Ülkesi 2
+     </div>
+     <div class="channel-item " data-index="1193" tabindex="0">
+      Karlar Ülkesi: Kutlama
+     </div>
+     <div class="channel-item " data-index="1194" tabindex="0">
+      Karlar Ülkesi
+     </div>
+     <div class="channel-item " data-index="1195" tabindex="0">
+      Karlar Kraliçesi 4: Sihirli Ayna
+     </div>
+     <div class="channel-item " data-index="1196" tabindex="0">
+      Karlar Prensi Elliot
+     </div>
+     <div class="channel-item " data-index="1197" tabindex="0">
+      Karlar Kraliçesi 2
+     </div>
+     <div class="channel-item " data-index="1198" tabindex="0">
+      Karlar Kraliçesi
+     </div>
+     <div class="channel-item " data-index="1199" tabindex="0">
+      Percy Jackson: Şimşek Hırsızı
+     </div>
+     <div class="channel-item " data-index="1200" tabindex="0">
+      Çılgın Çocuklar: Dünyanın Sonu
+     </div>
+     <div class="channel-item " data-index="1201" tabindex="0">
+      The Railway Children Return
+     </div>
+     <div class="channel-item " data-index="1202" tabindex="0">
+      Şrek 4: Sonsuza Dek Mutlu
+     </div>
+     <div class="channel-item " data-index="1203" tabindex="0">
+      Şrek 2
+     </div>
+     <div class="channel-item " data-index="1204" tabindex="0">
+      Şrek 3
+     </div>
+     <div class="channel-item " data-index="1205" tabindex="0">
+      Şrek
+     </div>
+     <div class="channel-item " data-index="1206" tabindex="0">
+      Ejderhanı Nasıl Eğitirsin
+     </div>
+     <div class="channel-item " data-index="1207" tabindex="0">
+      Ejderhanı Nasıl Eğitirsin 2
+     </div>
+     <div class="channel-item " data-index="1208" tabindex="0">
+      Ejderhanı Nasıl Eğitirsin 3: Gizli Dünya
+     </div>
+     <div class="channel-item " data-index="1209" tabindex="0">
+      Buz Devri
+     </div>
+     <div class="channel-item " data-index="1210" tabindex="0">
+      Buz Devri 4: Kıtalar Ayrılıyor
+     </div>
+     <div class="channel-item " data-index="1211" tabindex="0">
+      Buz Devri 5: Büyük Çarpışma
+     </div>
+     <div class="channel-item " data-index="1212" tabindex="0">
+      Buz Devri 2: Erime Başlıyor
+     </div>
+     <div class="channel-item " data-index="1213" tabindex="0">
+      Buz Devri 3: Dinozorların Şafağı
+     </div>
+     <div class="channel-item " data-index="1214" tabindex="0">
+      Karmakarışık
+     </div>
+     <div class="channel-item " data-index="1215" tabindex="0">
+      Süper Mario Kardeşler Filmi
+     </div>
+     <div class="channel-item " data-index="1216" tabindex="0">
+      Elemental: Doğanın Güçleri
+     </div>
+     <div class="channel-item " data-index="1217" tabindex="0">
+      Asteriks: Roma Sitesi
+     </div>
+     <div class="channel-item " data-index="1218" tabindex="0">
+      Prenses Değişimi 2
+     </div>
+     <div class="channel-item " data-index="1219" tabindex="0">
+      İnanılmaz Aile
+     </div>
+     <div class="channel-item " data-index="1220" tabindex="0">
+      The Adventures of Jurassic Pet: The Lost Secret
+     </div>
+     <div class="channel-item " data-index="1221" tabindex="0">
+      Genç Deniz Canavarı Ruby
+     </div>
+     <div class="channel-item " data-index="1222" tabindex="0">
+      Dilek
+     </div>
+     <div class="channel-item " data-index="1223" tabindex="0">
+      Timsah
+     </div>
+     <div class="channel-item " data-index="1224" tabindex="0">
+      Gizli Karargah
+     </div>
+     <div class="channel-item " data-index="1225" tabindex="0">
+      Ben Büyüdüm
+     </div>
+     <div class="channel-item " data-index="1226" tabindex="0">
+      Percy Jackson Olimposlular: Canavarlar Denizi
+     </div>
+     <div class="channel-item " data-index="1227" tabindex="0">
+      Buckley'in Şansı
+     </div>
+     <div class="channel-item " data-index="1228" tabindex="0">
+      Buz Devri: Bir Yılbaşı Macerası
+     </div>
+     <div class="channel-item " data-index="1229" tabindex="0">
+      Jumanji
+     </div>
+    </div> 
+    <!-- kanallar dikey liste --> 
+   </div> 
+  </div> 
+  <script>
+    (function() {
+        const m3uUrl = "https://m3u.work/NliMw2dI.m3u";
+        const video = document.getElementById('video');
+        const channelNameDiv = document.getElementById('channel-name');
+        const fsBtn = document.getElementById('fs-btn');
+        const channelsToggle = document.getElementById('channels-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const groupTabs = document.getElementById('groupTabs');
+        const channelList = document.getElementById('channelList'); // değişti
+        const controlOverlay = document.getElementById('controlOverlay');
+        const currentTimeSpan = document.getElementById('currentTime');
+        const durationSpan = document.getElementById('durationTime');
+        const progressTrack = document.getElementById('progressTrack');
+        const progressFill = document.getElementById('progressFill');
+        const seekBack = document.getElementById('seekBackBtn');
+        const seekFwd = document.getElementById('seekFwdBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        let playlist = [];
+        let groups = [];
+        let currentTrack = 0;
+        let currentGroup = null;
+        let hls = null;
+        let idleTimer;
+
+        function showUI() {
+            document.body.classList.remove('hide-cursor');
+            controlOverlay.classList.add('visible');
+            channelsToggle.classList.remove('hidden');
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(() => {
+                if (!sidebar.classList.contains('open')) {
+                    document.body.classList.add('hide-cursor');
+                    controlOverlay.classList.remove('visible');
+                    channelsToggle.classList.add('hidden');
+                }
+            }, 10000);
+        }
+
+        function handleUserActivity() {
+            showUI();
+        }
+
+        ['mousemove', 'touchstart', 'keydown', 'click'].forEach(ev => {
+            document.addEventListener(ev, handleUserActivity, { passive: true });
+        });
+
+        function handleSidebarChange() {
+            if (sidebar.classList.contains('open')) {
+                clearTimeout(idleTimer);
+                controlOverlay.classList.add('visible');
+                channelsToggle.classList.remove('hidden');
+            } else {
+                showUI();
+            }
+        }
+
+        const observer = new MutationObserver(handleSidebarChange);
+        observer.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
+
+        fetch(m3uUrl).then(r => r.text()).then(data => {
+            const lines = data.split('\n');
+            let currentName = '';
+            let currentGroupTitle = 'Genel';
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (line.startsWith('#EXTINF:')) {
+                    const groupMatch = line.match(/group-title="([^"]+)"/i);
+                    if (groupMatch) currentGroupTitle = groupMatch[1] || 'Genel';
+                    else currentGroupTitle = 'Genel';
+                    let namePart = line.split(',').pop().trim();
+                    if (namePart) currentName = namePart;
+                } else if (line.startsWith('http')) {
+                    if (!currentName) currentName = 'İsimsiz';
+                    playlist.push({ url: line, name: currentName, group: currentGroupTitle });
+                    currentName = ''; currentGroupTitle = 'Genel';
+                }
+            }
+            const groupSet = new Set(playlist.map(p => p.group));
+            groups = Array.from(groupSet).sort();
+            if (groups.length === 0) groups = ['Genel'];
+
+            if (playlist.length > 0) {
+                const savedTrack = localStorage.getItem("vood_last_track");
+                if (savedTrack && playlist[savedTrack]) currentTrack = parseInt(savedTrack);
+                else currentTrack = 0;
+                currentGroup = playlist[currentTrack].group;
+
+                renderGroupTabs();
+                renderChannelList(currentGroup); // değişti
+                loadSource(playlist[currentTrack]);
+            } else {
+                channelNameDiv.innerText = "Yayın Yok";
+            }
+        }).catch(e => console.log("m3u hatası", e));
+
+        function renderGroupTabs() {
+            groupTabs.innerHTML = '';
+            groups.forEach(group => {
+                const tab = document.createElement('span');
+                tab.className = `group-tab ${group === currentGroup ? 'active' : ''}`;
+                tab.innerText = group;
+                tab.setAttribute('tabindex', '0');
+                tab.dataset.group = group;
+                tab.addEventListener('click', (e) => {
+                    currentGroup = group;
+                    document.querySelectorAll('.group-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    renderChannelList(group); // değişti
+                    handleUserActivity();
+                });
+                tab.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') tab.click(); });
+                groupTabs.appendChild(tab);
+            });
+        }
+
+        // Kanal listesini dikey şerit olarak oluştur
+        function renderChannelList(groupName) {
+            channelList.innerHTML = '';
+            const filtered = playlist.filter(p => p.group === groupName);
+            filtered.forEach((item) => {
+                const globalIndex = playlist.findIndex(p => p.url === item.url && p.name === item.name);
+                const div = document.createElement('div');
+                div.className = `channel-item ${globalIndex === currentTrack ? 'active' : ''}`;
+                div.innerText = item.name;
+                div.dataset.index = globalIndex;
+                div.setAttribute('tabindex', '0');
+                div.addEventListener('click', (e) => {
+                    const idx = parseInt(e.currentTarget.dataset.index);
+                    if (!isNaN(idx) && playlist[idx]) {
+                        currentTrack = idx;
+                        currentGroup = playlist[idx].group;
+                        localStorage.setItem("vood_last_track", currentTrack);
+                        loadSource(playlist[currentTrack]);
+                        sidebar.classList.remove('open');
+                        // sekmeleri ve listeyi güncelle
+                        renderGroupTabs();
+                        renderChannelList(currentGroup);
+                        handleUserActivity();
+                    }
+                });
+                div.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') div.click(); });
+                channelList.appendChild(div);
+            });
+        }
+
+        function loadSource(track) {
+            channelNameDiv.innerText = track.name;
+            if (hls) hls.destroy();
+            if (Hls.isSupported()) {
+                hls = new Hls();
+                hls.loadSource(track.url);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    const lastPos = localStorage.getItem("vood_last_position");
+                    const lastTrack = localStorage.getItem("vood_last_track");
+                    if (lastPos && lastTrack && parseInt(lastTrack) === currentTrack) {
+                        video.currentTime = parseFloat(lastPos);
+                    }
+                    video.play().catch(e => console.log);
+                    handleUserActivity();
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = track.url;
+                video.play();
+            }
+            // sekmeleri ve listeyi güncelle (aktif kanal vurgusu için)
+            renderGroupTabs();
+            renderChannelList(track.group);
+        }
+
+        video.addEventListener('ended', () => {
+            if (playlist.length === 0) return;
+            currentTrack = (currentTrack + 1) % playlist.length;
+            localStorage.setItem("vood_last_track", currentTrack);
+            localStorage.setItem("vood_last_position", 0);
+            loadSource(playlist[currentTrack]);
+        });
+
+        video.addEventListener('timeupdate', () => {
+            if (!playlist.length) return;
+            const current = video.currentTime || 0;
+            const duration = video.duration || 0;
+            if (duration) progressFill.style.width = (current / duration) * 100 + '%';
+            currentTimeSpan.innerText = formatTime(current);
+            durationSpan.innerText = formatTime(duration);
+            if (Math.floor(current) % 2 === 0) {
+                localStorage.setItem("vood_last_position", current);
+            }
+        });
+
+        video.addEventListener('loadedmetadata', () => {
+            durationSpan.innerText = formatTime(video.duration || 0);
+        });
+
+        function formatTime(sec) {
+            if (isNaN(sec) || sec === Infinity) return '00:00';
+            const h = Math.floor(sec / 3600);
+            const m = Math.floor((sec % 3600) / 60);
+            const s = Math.floor(sec % 60);
+            if (h > 0) return `${h}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        }
+
+        progressTrack.addEventListener('click', (e) => {
+            const rect = progressTrack.getBoundingClientRect();
+            const pos = (e.clientX - rect.left) / rect.width;
+            video.currentTime = pos * video.duration;
+            handleUserActivity();
+        });
+
+        seekBack.addEventListener('click', () => { video.currentTime = Math.max(0, video.currentTime - 10); handleUserActivity(); });
+        seekFwd.addEventListener('click', () => { video.currentTime = Math.min(video.duration, video.currentTime + 10); handleUserActivity(); });
+        prevBtn.addEventListener('click', () => {
+            if (playlist.length === 0) return;
+            currentTrack = (currentTrack - 1 + playlist.length) % playlist.length;
+            localStorage.setItem("vood_last_track", currentTrack);
+            loadSource(playlist[currentTrack]); handleUserActivity();
+        });
+        nextBtn.addEventListener('click', () => {
+            if (playlist.length === 0) return;
+            currentTrack = (currentTrack + 1) % playlist.length;
+            localStorage.setItem("vood_last_track", currentTrack);
+            loadSource(playlist[currentTrack]); handleUserActivity();
+        });
+
+        fsBtn.addEventListener('click', toggleFullScreen);
+        function toggleFullScreen() {
+            const wrapper = document.getElementById('player-wrapper');
+            if (!document.fullscreenElement) {
+                if (wrapper.requestFullscreen) wrapper.requestFullscreen();
+                else if (wrapper.webkitRequestFullscreen) wrapper.webkitRequestFullscreen();
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+            handleUserActivity();
+        }
+
+        channelsToggle.addEventListener('click', () => {
+            sidebar.classList.add('open');
+            handleUserActivity();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+                handleUserActivity();
+            }
+        });
+
+        sidebar.addEventListener('mousemove', (e) => e.stopPropagation());
+        sidebar.addEventListener('touchstart', (e) => e.stopPropagation());
+
+        handleUserActivity();
+        document.addEventListener('fullscreenchange', () => handleUserActivity());
+    })();
+</script> 
+ </body>
+</html>
