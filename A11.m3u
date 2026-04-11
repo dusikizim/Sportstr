@@ -1,4 +1,20 @@
 #EXTM3U
+#EXTINF:-1 tvg-id="" tvg-name="4K TR: A SPOR HD (1)" tvg-logo="https://raw.githubusercontent.com/patr0nq/link/refs/heads/main/tv-logo/kool.png" tvg-language="Turkish" tvg-country="TR" group-title="KoolTO Türkiye Spor"  ,4K TR: A SPOR HD (1)
+#EXTVLCOPT:http-user-agent=KOOL/1.0
+#EXTVLCOPT:http-referrer=https://kool.to/
+https://kool.to/play/1771137539/index.m3u8
+#EXTINF:-1 tvg-id="" tvg-name="4K TR: EUROSPORT 1 HD (1)" tvg-logo="https://raw.githubusercontent.com/patr0nq/link/refs/heads/main/tv-logo/kool.png" tvg-language="Turkish" tvg-country="TR" group-title="KoolTO Türkiye Spor"  ,4K TR: EUROSPORT 1 HD (1)
+#EXTVLCOPT:http-user-agent=KOOL/1.0
+#EXTVLCOPT:http-referrer=https://kool.to/
+https://kool.to/play/2078862937/index.m3u8
+#EXTINF:-1 tvg-id="" tvg-name="4K TR: EUROSPORT 2 HD (1)" tvg-logo="https://raw.githubusercontent.com/patr0nq/link/refs/heads/main/tv-logo/kool.png" tvg-language="Turkish" tvg-country="TR" group-title="KoolTO Türkiye Spor"  ,4K TR: EUROSPORT 2 HD (1)
+#EXTVLCOPT:http-user-agent=KOOL/1.0
+#EXTVLCOPT:http-referrer=https://kool.to/
+https://kool.to/play/4117227962/index.m3u8
+#EXTINF:-1 tvg-id="" tvg-name="4K TR: FB TV (1)" tvg-logo="https://raw.githubusercontent.com/patr0nq/link/refs/heads/main/tv-logo/kool.png" tvg-language="Turkish" tvg-country="TR" group-title="KoolTO Türkiye Spor"  ,4K TR: FB TV (1)
+#EXTVLCOPT:http-user-agent=KOOL/1.0
+#EXTVLCOPT:http-referrer=https://kool.to/
+https://kool.to/play/3730681078/index.m3u8
 
 #EXTINF:-1 tvg-name="TRT 1" tvg-id="TRT1.tr" tvg-logo="https://i.ibb.co/thr6mVk/trt-1.png" group-title="🇹🇷͜͜͡͡✯ ULUSAL KANALLAR",TRT 1
 https://tv-trt1.medya.trt.com.tr/master_1080.m3u8
