@@ -1,5 +1,8 @@
 #EXTM3U x-tvg-url="http://epg.one/epg.xml.gz"
 
+#EXTINF:-1 tvg-logo="https://www.storyajans.com/wp-content/uploads/2025/01/kapak_210034.jpg" group-title="DIZI SON BÖLÜM",YER ALTI
+https://github.com/dusikizim/Sportstr/raw/refs/heads/main/Sine1.m3u8
+
 #EXTM3U x-tvg-url="https://nqg6bkpsnhen.merlincdn.net/resize/640x360/Programlar/Yeralti/Haberler/Yeralti-1767620078_image.jpg" group-title="DIZI SON BÖLÜM",Yer Altı
 https://api.codetabs.com/v1/proxy/?quest=http://45.159.95.10:8880/STORE/DIZI.SON.BOLUMLER/Yeralti.SON.mkv
 
